@@ -7,8 +7,6 @@
 
 Selamat datang di repositori pemesanan tiket **Sound Wave Production**. Proyek ini merupakan platform tiket yang tahan banting ketika terjadi puncak trafik tak terduga (*war ticket*) berkat penerapan prinsip **Decoupled Serverless Architecture**. 
 
-_Terinspirasi dari modul resmi LKS (Lomba Kompetensi Siswa) Nasional bidang Cloud Computing 2025._
-
 ---
 
 ## 🏛 Arsitektur Sistem
