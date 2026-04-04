@@ -1,0 +1,2167 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sound Wave — Concert Tickets</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0f;
+  --bg2: #12121a;
+  --bg3: #1a1a26;
+  --bg4: #22223a;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.15);
+  --accent: #7c6dfa;
+  --accent2: #a594ff;
+  --accent-glow: rgba(124,109,250,0.3);
+  --gold: #e8c96d;
+  --gold-dim: rgba(232,201,109,0.15);
+  --red: #fa6d7c;
+  --red-dim: rgba(250,109,124,0.12);
+  --green: #6dfaaa;
+  --green-dim: rgba(109,250,170,0.12);
+  --teal: #6de8fa;
+  --teal-dim: rgba(109,232,250,0.12);
+  --text: #f0f0f8;
+  --text2: rgba(240,240,248,0.6);
+  --text3: rgba(240,240,248,0.35);
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 18px;
+}
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+button { cursor: pointer; font-family: var(--font-body); }
+input, select, textarea { font-family: var(--font-body); }
+a { color: var(--accent2); text-decoration: none; }
+
+/* ===== NOISE TEXTURE ===== */
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
+
+/* ===== GLOW ORBS ===== */
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0;
+}
+.orb1 { width: 600px; height: 600px; background: var(--accent-glow); top: -200px; right: -100px; }
+.orb2 { width: 400px; height: 400px; background: rgba(109,250,170,0.06); bottom: -100px; left: -100px; }
+
+/* ===== LAYOUT ===== */
+.app-shell { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: 240px; flex-shrink: 0;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; height: 100vh;
+  z-index: 100;
+}
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo .brand {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 800;
+  background: linear-gradient(135deg, var(--accent2), var(--gold));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+.sidebar-logo .sub { font-size: 11px; color: var(--text3); margin-top: 2px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+.nav-section { padding: 12px 20px 6px; font-size: 10px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 20px; font-size: 13px; font-weight: 400; color: var(--text2);
+  border: none; background: none; width: 100%; text-align: left;
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
+}
+.nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.nav-item.active { background: rgba(124,109,250,0.1); color: var(--accent2); border-left-color: var(--accent); }
+.nav-item .icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+.nav-item.active .icon { opacity: 1; }
+.nav-badge {
+  margin-left: auto; background: var(--accent); color: #fff;
+  font-size: 10px; padding: 1px 6px; border-radius: 99px; font-weight: 600;
+}
+.nav-badge.red { background: var(--red); }
+.nav-badge.green { background: var(--green); color: #000; }
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+.ws-indicator {
+  display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2);
+}
+.ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
+.ws-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse-dot 2s infinite; }
+.ws-dot.connecting { background: var(--gold); animation: pulse-dot 0.8s infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ===== MAIN CONTENT ===== */
+.main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ===== TOPBAR ===== */
+.topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 32px; height: 60px;
+  background: rgba(10,10,15,0.8); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.auth-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px; border-radius: var(--radius-sm);
+  font-size: 12px; border: 1px solid var(--border);
+  background: var(--bg2);
+}
+.auth-status.authed { border-color: rgba(109,250,170,0.3); background: var(--green-dim); color: var(--green); }
+.btn-icon {
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  background: var(--bg2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; color: var(--text2);
+}
+.btn-icon:hover { border-color: var(--border2); color: var(--text); }
+
+/* ===== PAGE CONTENT ===== */
+.page { display: none; padding: 32px; flex: 1; }
+.page.active { display: block; }
+
+/* ===== TOAST NOTIFICATIONS ===== */
+#toast-container {
+  position: fixed; top: 20px; right: 20px; z-index: 9999;
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+}
+.toast {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); padding: 12px 16px;
+  font-size: 13px; max-width: 320px; pointer-events: all;
+  display: flex; align-items: flex-start; gap: 10px;
+  animation: toast-in 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error { border-left: 3px solid var(--red); }
+.toast.info { border-left: 3px solid var(--accent); }
+.toast.ws { border-left: 3px solid var(--teal); }
+.toast-icon { font-size: 16px; flex-shrink: 0; }
+.toast-body .toast-title { font-weight: 500; font-size: 13px; margin-bottom: 2px; }
+.toast-body .toast-msg { font-size: 12px; color: var(--text2); }
+@keyframes toast-in { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+@keyframes toast-out { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(40px)} }
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 24px;
+}
+.card-sm { padding: 16px 20px; border-radius: var(--radius); }
+.card:hover { border-color: var(--border2); }
+
+/* ===== STATS ROW ===== */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.stat-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+}
+.stat-label { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; margin-bottom: 8px; }
+.stat-val { font-family: var(--font-display); font-size: 28px; font-weight: 700; }
+.stat-val.accent { color: var(--accent2); }
+.stat-val.green { color: var(--green); }
+.stat-val.gold { color: var(--gold); }
+.stat-val.red { color: var(--red); }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* ===== SECTION HEADERS ===== */
+.sec-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.sec-title {
+  font-family: var(--font-display); font-size: 18px; font-weight: 700; letter-spacing: -0.02em;
+}
+.sec-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+/* ===== BUTTONS ===== */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 18px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; border: 1px solid var(--border2);
+  background: var(--bg3); color: var(--text); transition: all 0.15s;
+}
+.btn:hover { background: var(--bg4); border-color: rgba(255,255,255,0.25); }
+.btn-primary {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff; box-shadow: 0 0 20px var(--accent-glow);
+}
+.btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+.btn-gold { background: var(--gold-dim); border-color: rgba(232,201,109,0.3); color: var(--gold); }
+.btn-gold:hover { background: rgba(232,201,109,0.2); }
+.btn-danger { background: var(--red-dim); border-color: rgba(250,109,124,0.3); color: var(--red); }
+.btn-danger:hover { background: rgba(250,109,124,0.2); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-xs { padding: 3px 8px; font-size: 11px; border-radius: 6px; }
+
+/* ===== BADGES ===== */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 500;
+}
+.badge-accent { background: rgba(124,109,250,0.15); color: var(--accent2); }
+.badge-green { background: var(--green-dim); color: var(--green); }
+.badge-red { background: var(--red-dim); color: var(--red); }
+.badge-gold { background: var(--gold-dim); color: var(--gold); }
+.badge-teal { background: var(--teal-dim); color: var(--teal); }
+.badge-gray { background: rgba(255,255,255,0.06); color: var(--text2); }
+
+/* ===== FORMS ===== */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1/-1; }
+.form-label { font-size: 12px; color: var(--text2); font-weight: 500; }
+.form-input {
+  padding: 9px 12px; border-radius: var(--radius-sm);
+  background: var(--bg3); border: 1px solid var(--border2);
+  color: var(--text); font-size: 14px; transition: border-color 0.15s;
+}
+.form-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.form-input::placeholder { color: var(--text3); }
+select.form-input option { background: var(--bg3); }
+
+/* ===== EVENT CARDS ===== */
+.events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+.event-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+  transition: all 0.2s; position: relative;
+}
+.event-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.event-card-hero {
+  height: 160px; display: flex; align-items: center; justify-content: center;
+  font-size: 64px; position: relative;
+}
+.event-card-body { padding: 20px; }
+.event-name { font-family: var(--font-display); font-size: 17px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+.event-meta { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.event-meta-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); }
+.event-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 14px; border-top: 1px solid var(--border); }
+.event-price { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--gold); }
+.event-tickets { font-size: 11px; color: var(--text3); }
+
+/* ===== TICKET BADGE ===== */
+.ticket-badge {
+  position: absolute; top: 12px; right: 12px;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+  border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  padding: 4px 10px; font-size: 11px; color: var(--text2);
+}
+
+/* ===== ORDERS TABLE ===== */
+.table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: var(--bg3); }
+th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; }
+td { padding: 12px 14px; font-size: 13px; border-top: 1px solid var(--border); color: var(--text2); }
+tr:hover td { background: rgba(255,255,255,0.02); }
+td .order-id { font-family: monospace; font-size: 11px; color: var(--text3); }
+
+/* ===== SQS QUEUE VIZ ===== */
+.queue-pipeline { display: flex; align-items: stretch; gap: 0; margin-bottom: 24px; }
+.queue-stage {
+  flex: 1; background: var(--bg2); border: 1px solid var(--border);
+  padding: 16px; position: relative;
+  transition: border-color 0.2s;
+}
+.queue-stage:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.queue-stage:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+.queue-stage:not(:first-child) { border-left: none; }
+.queue-stage.active { border-color: var(--accent); background: rgba(124,109,250,0.05); }
+.queue-stage.done { border-color: rgba(109,250,170,0.3); background: var(--green-dim); }
+.queue-stage-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.queue-stage-main { font-size: 13px; font-weight: 500; }
+.queue-arrow {
+  width: 0; height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 8px solid var(--border2);
+  align-self: center; flex-shrink: 0;
+}
+
+.queue-msg {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 6px;
+  font-size: 12px; display: flex; align-items: center; justify-content: space-between;
+  animation: slide-in 0.25s ease;
+}
+.queue-msg.processing { border-color: var(--gold); background: var(--gold-dim); }
+.queue-msg.failed { border-color: var(--red); background: var(--red-dim); }
+@keyframes slide-in { from{transform:translateX(-8px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+/* ===== LAMBDA TERMINAL ===== */
+.terminal {
+  background: #0d0d14; border: 1px solid var(--border);
+  border-radius: var(--radius); font-family: 'Courier New', monospace;
+  font-size: 12px; line-height: 1.7; overflow-y: auto; max-height: 400px;
+  padding: 16px;
+}
+.terminal::-webkit-scrollbar { width: 4px; }
+.terminal::-webkit-scrollbar-track { background: transparent; }
+.terminal::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.log-line { padding: 1px 0; }
+.log-line .ts { color: #444; margin-right: 8px; }
+.log-line .fn-tag {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px;
+  margin-right: 8px; font-weight: 600;
+}
+.log-line .msg-ok { color: #6dfaaa; }
+.log-line .msg-warn { color: #e8c96d; }
+.log-line .msg-err { color: #fa6d7c; }
+.log-line .msg-info { color: #6de8fa; }
+.log-line .msg-dim { color: #555; }
+
+/* ===== WEBSOCKET PANEL ===== */
+.ws-messages {
+  background: #0a0a14; border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  max-height: 360px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ws-msg {
+  display: flex; gap: 10px; align-items: flex-start;
+  animation: slide-in 0.2s ease;
+}
+.ws-msg-bubble {
+  padding: 8px 12px; border-radius: 8px; font-size: 12px; max-width: 85%;
+  line-height: 1.5;
+}
+.ws-msg.sent .ws-msg-bubble { background: rgba(124,109,250,0.15); border: 1px solid rgba(124,109,250,0.3); margin-left: auto; }
+.ws-msg.received .ws-msg-bubble { background: var(--bg3); border: 1px solid var(--border); }
+.ws-msg.system .ws-msg-bubble { background: var(--teal-dim); border: 1px solid rgba(109,232,250,0.2); color: var(--teal); font-family: monospace; font-size: 11px; }
+.ws-msg.broadcast .ws-msg-bubble { background: var(--green-dim); border: 1px solid rgba(109,250,170,0.3); color: var(--green); }
+.ws-msg-meta { font-size: 10px; color: var(--text3); margin-top: 2px; }
+.ws-input-row {
+  display: flex; gap: 10px; margin-top: 12px;
+}
+.ws-routes { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.route-btn {
+  padding: 4px 10px; border-radius: var(--radius-sm);
+  background: var(--bg3); border: 1px solid var(--border2);
+  color: var(--text2); font-size: 11px; font-weight: 500;
+  transition: all 0.15s;
+}
+.route-btn:hover { border-color: var(--accent); color: var(--accent2); }
+
+/* ===== ARCHITECTURE PAGE ===== */
+.arch-flow {
+  display: flex; align-items: center; gap: 0; flex-wrap: wrap;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+}
+.arch-node {
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.arch-node.frontend { background: rgba(124,109,250,0.15); border: 1px solid rgba(124,109,250,0.3); color: var(--accent2); }
+.arch-node.gateway { background: var(--bg3); border: 1px solid var(--border2); color: var(--text); }
+.arch-node.lambda { background: var(--gold-dim); border: 1px solid rgba(232,201,109,0.3); color: var(--gold); }
+.arch-node.sqs { background: var(--teal-dim); border: 1px solid rgba(109,232,250,0.25); color: var(--teal); }
+.arch-node.db { background: var(--green-dim); border: 1px solid rgba(109,250,170,0.25); color: var(--green); }
+.arch-node.s3 { background: var(--red-dim); border: 1px solid rgba(250,109,124,0.25); color: var(--red); }
+.arch-node.dynamo { background: rgba(124,109,250,0.1); border: 1px solid rgba(124,109,250,0.25); color: var(--accent2); }
+.arch-arrow-h {
+  color: var(--text3); font-size: 14px; padding: 0 6px;
+}
+.arch-label { font-size: 10px; color: var(--text3); padding: 0 6px; }
+
+/* ===== SSM TABLE ===== */
+.ssm-row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  gap: 12px; align-items: center;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.ssm-row:last-child { border-bottom: none; }
+.ssm-key { font-family: monospace; font-size: 12px; color: var(--accent2); }
+.ssm-val { font-family: monospace; font-size: 12px; color: var(--text2); }
+
+/* ===== AUTH PAGE ===== */
+.auth-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.step-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 24px; position: relative;
+}
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent); display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; margin-bottom: 14px;
+}
+.step-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.step-desc { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 16px; }
+.token-display {
+  background: var(--bg3); border: 1px solid rgba(109,250,170,0.3);
+  border-radius: var(--radius-sm); padding: 10px 14px;
+  font-family: monospace; font-size: 11px; color: var(--green);
+  word-break: break-all; line-height: 1.7;
+}
+
+/* ===== PAYMENT PAGE ===== */
+.upload-zone {
+  border: 2px dashed var(--border2); border-radius: var(--radius-lg);
+  padding: 48px; text-align: center; transition: all 0.2s;
+  cursor: pointer; background: var(--bg2);
+}
+.upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(124,109,250,0.05); }
+.upload-icon { font-size: 48px; margin-bottom: 12px; }
+.upload-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.upload-desc { font-size: 13px; color: var(--text2); }
+
+.payment-status {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px;
+}
+.payment-icon { font-size: 24px; }
+.payment-info .payment-name { font-size: 14px; font-weight: 500; }
+.payment-info .payment-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.payment-status-badge { margin-left: auto; }
+.progress-bar-wrap { height: 4px; background: var(--bg3); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.progress-bar { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+  z-index: 200; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius-lg); padding: 28px; width: 560px; max-width: 90vw;
+  transform: translateY(16px); transition: transform 0.2s;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.modal-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+.modal-close { background: none; border: none; color: var(--text2); font-size: 20px; }
+.modal-close:hover { color: var(--text); }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+/* ===== PAGE HEADER ===== */
+.page-hero { margin-bottom: 28px; }
+.page-hero h1 { font-family: var(--font-display); font-size: 26px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4px; }
+.page-hero p { font-size: 13px; color: var(--text2); }
+.page-hero .route-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 3px 10px; font-family: monospace; font-size: 11px; color: var(--text2);
+  margin-top: 8px;
+}
+
+/* ===== TICKET PAGE ===== */
+.ticket-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+  display: flex; margin-bottom: 16px;
+}
+.ticket-left {
+  background: linear-gradient(135deg, var(--accent) 0%, #9f7efa 100%);
+  width: 8px; flex-shrink: 0;
+}
+.ticket-body { padding: 18px 20px; flex: 1; }
+.ticket-id { font-family: monospace; font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+.ticket-event { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.ticket-details { display: flex; gap: 16px; flex-wrap: wrap; }
+.ticket-detail { display: flex; flex-direction: column; }
+.ticket-detail .label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+.ticket-detail .value { font-size: 13px; font-weight: 500; margin-top: 1px; }
+.ticket-right { padding: 18px 20px; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; }
+.ticket-price { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--gold); }
+
+/* ===== ANIMATIONS ===== */
+@keyframes fade-up { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.page.active > * { animation: fade-up 0.3s ease backwards; }
+.page.active > *:nth-child(1) { animation-delay: 0s; }
+.page.active > *:nth-child(2) { animation-delay: 0.04s; }
+.page.active > *:nth-child(3) { animation-delay: 0.08s; }
+.page.active > *:nth-child(4) { animation-delay: 0.12s; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .auth-steps { grid-template-columns: 1fr; }
+  .events-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div id="toast-container"></div>
+
+<!-- ===== MODAL: ADD EVENT ===== -->
+<div class="modal-overlay" id="modal-add-event">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Tambah Event Baru</div>
+      <button class="modal-close" onclick="closeModal('modal-add-event')">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:16px;font-family:monospace;">
+      POST /event → lks-auth → lks-write-event (Lambda) → RDS PostgreSQL
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Nama Event *</label>
+        <input class="form-input" id="ev-name" placeholder="Nama konser..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Artis / Performer</label>
+        <input class="form-input" id="ev-artist" placeholder="Nama artis..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lokasi *</label>
+        <input class="form-input" id="ev-loc" placeholder="Jakarta, Indonesia" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Venue</label>
+        <input class="form-input" id="ev-venue" placeholder="Nama venue..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tanggal *</label>
+        <input class="form-input" type="date" id="ev-date" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Jam Mulai</label>
+        <input class="form-input" type="time" id="ev-time" value="19:00" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Harga Tiket (Rp) *</label>
+        <input class="form-input" type="number" id="ev-price" placeholder="350000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Total Tiket</label>
+        <input class="form-input" type="number" id="ev-tickets" placeholder="500" value="500" />
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Deskripsi</label>
+        <textarea class="form-input" id="ev-desc" rows="2" placeholder="Deskripsi singkat event..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-add-event')">Batal</button>
+      <button class="btn btn-primary" onclick="submitAddEvent()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Simpan Event
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: BUY TICKET ===== -->
+<div class="modal-overlay" id="modal-buy">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Beli Tiket</div>
+      <button class="modal-close" onclick="closeModal('modal-buy')">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:16px;font-family:monospace;">
+      POST /order → lks-auth → lks-queue-order → SQS → lks-write-order → RDS
+    </div>
+    <div id="buy-event-info" class="card card-sm" style="margin-bottom:18px;"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Nama Lengkap *</label>
+        <input class="form-input" id="buy-name" placeholder="Nama pemesan..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input class="form-input" id="buy-email" type="email" placeholder="email@example.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">No. HP</label>
+        <input class="form-input" id="buy-phone" placeholder="08xx..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Jumlah Tiket *</label>
+        <input class="form-input" id="buy-qty" type="number" value="1" min="1" max="10" />
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Kategori Tiket</label>
+        <select class="form-input" id="buy-category">
+          <option value="regular">Regular</option>
+          <option value="vip">VIP (+50%)</option>
+          <option value="vvip">VVIP (+100%)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-buy')">Batal</button>
+      <button class="btn btn-primary" onclick="submitOrder()">
+        Order &amp; Masuk Queue SQS
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP SHELL ===== -->
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="brand">SoundWave</div>
+      <div class="sub">Concert Ticket Platform</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section">Frontend</div>
+      <button class="nav-item active" onclick="showPage('dashboard', this)">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" onclick="showPage('events', this)">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M6 5.5l4 2.5-4 2.5V5.5z" fill="currentColor"/></svg>
+        Events
+        <span class="nav-badge" id="nb-events">3</span>
+      </button>
+      <button class="nav-item" onclick="showPage('orders', this)">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M3 3h10l-1.5 7H4.5L3 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="6" cy="13.5" r="1" fill="currentColor"/><circle cx="10" cy="13.5" r="1" fill="currentColor"/></svg>
+        Orders
+        <span class="nav-badge" id="nb-orders">0</span>
+      </button>
+      <button class="nav-item" onclick="showPage('tickets', this)">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M1 5.5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v1a2 2 0 0 0 0 3v1a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-1a2 2 0 0 0 0-3v-1z" stroke="currentColor" stroke-width="1.5"/></svg>
+        Tiket Saya
+        <span class="nav-badge green" id="nb-tickets">0</span>
+      </button>
+      <button class="nav-item" onclick="showPage('payment', this)">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3.5" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.5"/></svg>
+        Pembayaran
+      </button>
+
+      <div class="nav-section">Backend / AWS</div>
+      <button class="nav-item" onclick="showPage('auth-page', this)">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M8 1L6 5H2l3.27 2.38L4 12l4-2.9L12 12l-1.27-4.62L14 5h-4L8 1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        Auth &amp; Token
+      </button>
+      <button class="nav-item" onclick="showPage('sqs-page', this)">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        SQS Queue
+        <span class="nav-badge red" id="nb-sqs">0</span>
+      </button>
+      <button class="nav-item" onclick="showPage('websocket-page', this)">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M2 8c0-3.3 2.7-6 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M14 8c0 3.3-2.7 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>
+        WebSocket API
+      </button>
+      <button class="nav-item" onclick="showPage('lambda-page', this)">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M2 14L6 2l2.5 6L11 5l3 9" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        Lambda Logs
+      </button>
+      <button class="nav-item" onclick="showPage('arch-page', this)">
+        <svg class="icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="1" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="6" y="11" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M3 5v3h10V5M8 8v3" stroke="currentColor" stroke-width="1.3"/></svg>
+        Architecture
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="ws-indicator">
+        <div class="ws-dot" id="ws-sidebar-dot"></div>
+        <span id="ws-sidebar-label">WebSocket: offline</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-right">
+        <div class="auth-status" id="auth-status-bar">
+          <span>●</span> Belum login
+        </div>
+        <button class="btn btn-sm" onclick="showPage('auth-page', null)">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8h10M8 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Login
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-hero">
+        <h1>Sound Wave Production</h1>
+        <p>Concert Ticket Platform — Serverless on AWS</p>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Events</div>
+          <div class="stat-val accent" id="dash-events">3</div>
+          <div class="stat-sub">lks-read-event (Lambda)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Orders</div>
+          <div class="stat-val green" id="dash-orders">0</div>
+          <div class="stat-sub">lks-read-order (Lambda)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">SQS Queue</div>
+          <div class="stat-val gold" id="dash-queue">0</div>
+          <div class="stat-sub">lks-queue-order + lks-queue-payment</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">WS Connections</div>
+          <div class="stat-val" id="dash-ws">0</div>
+          <div class="stat-sub">API WebSocket (prod stage)</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;">
+        <div>
+          <div class="sec-header">
+            <div>
+              <div class="sec-title">Events Terbaru</div>
+              <div class="sec-sub">GET /event → lks-read-event</div>
+            </div>
+            <button class="btn btn-sm btn-primary" onclick="openModal('modal-add-event')">+ Tambah</button>
+          </div>
+          <div id="dash-event-list"></div>
+        </div>
+        <div>
+          <div class="sec-header">
+            <div>
+              <div class="sec-title">AWS Services</div>
+              <div class="sec-sub">Status layanan</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;" id="aws-status-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EVENTS ===== -->
+    <div class="page" id="page-events">
+      <div class="page-hero">
+        <h1>Events</h1>
+        <p>Kelola semua event konser</p>
+        <div class="route-tag">GET /event → lks-read-event &nbsp;|&nbsp; POST /event → lks-write-event &nbsp;|&nbsp; DELETE /event/{id}</div>
+      </div>
+      <div class="sec-header">
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input class="form-input" id="event-search" placeholder="Cari event..." style="width:220px;" oninput="renderEvents()" />
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-add-event')">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Tambah Event
+        </button>
+      </div>
+      <div class="events-grid" id="events-grid"></div>
+    </div>
+
+    <!-- ===== ORDERS ===== -->
+    <div class="page" id="page-orders">
+      <div class="page-hero">
+        <h1>Orders</h1>
+        <p>Semua pesanan tiket konser</p>
+        <div class="route-tag">GET /order → lks-read-order &nbsp;|&nbsp; POST /order → lks-queue-order → SQS</div>
+      </div>
+      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card">
+          <div class="stat-label">Total Orders</div>
+          <div class="stat-val green" id="ord-total">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">In Queue</div>
+          <div class="stat-val gold" id="ord-queue">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Revenue</div>
+          <div class="stat-val accent" id="ord-revenue">Rp 0</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Order ID</th><th>Event</th><th>Pemesan</th>
+            <th>Qty</th><th>Kategori</th><th>Total</th><th>Status</th><th>Aksi</th>
+          </tr></thead>
+          <tbody id="orders-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== TICKETS ===== -->
+    <div class="page" id="page-tickets">
+      <div class="page-hero">
+        <h1>Tiket Saya</h1>
+        <p>Semua tiket yang sudah dibeli</p>
+        <div class="route-tag">GET /ticket → lks-ticket (Lambda)</div>
+      </div>
+      <div id="tickets-container">
+        <div style="text-align:center;padding:60px;color:var(--text3);">
+          <div style="font-size:48px;margin-bottom:12px;">🎫</div>
+          <div>Belum ada tiket. Beli tiket dulu di halaman Events!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAYMENT ===== -->
+    <div class="page" id="page-payment">
+      <div class="page-hero">
+        <h1>Pembayaran</h1>
+        <p>Upload bukti pembayaran — S3 → SQS → Lambda</p>
+        <div class="route-tag">PUT /payment/{filename} → S3 (proofOfPayment/) → lks-queue-payment → lks-payment</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <div>
+          <div class="sec-header"><div class="sec-title">Upload Bukti Transfer</div></div>
+          <div class="upload-zone" id="upload-zone" onclick="simulateUpload()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="event.preventDefault();this.classList.remove('drag');simulateUpload()">
+            <div class="upload-icon">📁</div>
+            <div class="upload-title">Klik atau drag file di sini</div>
+            <div class="upload-desc">Simulasi upload ke S3 bucket<br><code style="font-size:11px;color:var(--accent2);">lks-YourName-YourProvince/proofOfPayment/</code></div>
+          </div>
+          <div id="upload-list" style="margin-top:16px;"></div>
+        </div>
+        <div>
+          <div class="sec-header"><div class="sec-title">S3 Lifecycle Policy</div></div>
+          <div class="card card-sm" style="margin-bottom:12px;">
+            <div style="font-size:12px;color:var(--text2);line-height:1.8;">
+              <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--text3);">Bucket</span>
+                <span class="badge badge-accent" style="font-family:monospace;">lks-YourName-YourProvince</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--text3);">Folder</span>
+                <span style="font-family:monospace;font-size:11px;">proofOfPayment/</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+                <span style="color:var(--text3);">Setelah 6 bulan</span>
+                <span class="badge badge-gold">→ Glacier Deep Archive</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:4px 0;">
+                <span style="color:var(--text3);">Setelah 1 tahun</span>
+                <span class="badge badge-red">→ Delete otomatis</span>
+              </div>
+            </div>
+          </div>
+          <div class="sec-header" style="margin-top:16px;"><div class="sec-title">Payment Queue Status</div></div>
+          <div id="payment-queue-list">
+            <div style="font-size:13px;color:var(--text3);text-align:center;padding:20px;">Queue kosong</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AUTH PAGE ===== -->
+    <div class="page" id="page-auth-page">
+      <div class="page-hero">
+        <h1>Auth &amp; Token</h1>
+        <p>DynamoDB tokens table + Custom Authorizer</p>
+      </div>
+      <div class="auth-steps">
+        <!-- STEP 1: Generate Token -->
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-title">Generate Token</div>
+          <div class="step-desc">
+            POST /token diamankan dengan <strong>AWS IAM (Signature)</strong>. Lambda <code style="font-family:monospace;font-size:12px;color:var(--accent2);">lks-token</code> akan menyimpan token ke DynamoDB tabel "tokens" (pk: token, sk: deviceid).
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">User ID / Email</label>
+            <input class="form-input" id="auth-user" placeholder="user@email.com" value="admin@soundwave.id" />
+          </div>
+          <div class="form-group" style="margin-bottom:16px;">
+            <label class="form-label">Device ID</label>
+            <input class="form-input" id="auth-device" placeholder="device-001" value="device-001" />
+          </div>
+          <button class="btn btn-primary" onclick="generateToken()" style="width:100%;">
+            Generate Token → DynamoDB
+          </button>
+          <div id="token-result" style="margin-top:14px;display:none;">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Token tersimpan di DynamoDB:</div>
+            <div class="token-display" id="token-val"></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+              <span class="badge badge-green">RCU: 10–100</span>
+              <span class="badge badge-accent">WCU: 5–25</span>
+              <span class="badge badge-gray">Target: 70%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Validate Token -->
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-title">Validasi via lks-auth</div>
+          <div class="step-desc">
+            Setiap request ke endpoint yang diamankan harus menyertakan header <code style="font-family:monospace;font-size:12px;color:var(--accent2);">Authorization</code> dan <code style="font-family:monospace;font-size:12px;color:var(--accent2);">Deviceid</code>. Lambda <code style="font-family:monospace;font-size:12px;color:var(--accent2);">lks-auth</code> query ke DynamoDB.
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">Token</label>
+            <input class="form-input" id="val-token" placeholder="Paste token..." />
+          </div>
+          <div class="form-group" style="margin-bottom:16px;">
+            <label class="form-label">Device ID</label>
+            <input class="form-input" id="val-device" placeholder="device-001" />
+          </div>
+          <button class="btn" onclick="validateToken()" style="width:100%;">
+            Validasi via lks-auth
+          </button>
+          <div id="val-result" style="margin-top:14px;font-size:13px;"></div>
+        </div>
+
+        <!-- DynamoDB Info -->
+        <div class="step-card">
+          <div class="step-num" style="background:var(--teal);color:#000;">D</div>
+          <div class="step-title">DynamoDB — tokens</div>
+          <div class="step-desc">Tabel tokens dengan provisioned capacity + auto scaling.</div>
+          <div style="background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);">
+            <div class="ssm-row" style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">
+              <span>Key</span><span>Type</span><span>Value</span>
+            </div>
+            <div class="ssm-row"><span class="ssm-key">token</span><span class="badge badge-accent">Partition Key (S)</span><span class="ssm-val">—</span></div>
+            <div class="ssm-row"><span class="ssm-key">deviceid</span><span class="badge badge-teal">Sort Key (S)</span><span class="ssm-val">—</span></div>
+            <div class="ssm-row"><span class="ssm-key">userId</span><span class="badge badge-gray">String</span><span class="ssm-val">—</span></div>
+            <div class="ssm-row"><span class="ssm-key">createdAt</span><span class="badge badge-gray">String</span><span class="ssm-val">—</span></div>
+          </div>
+          <div id="dynamo-table" style="margin-top:12px;"></div>
+        </div>
+
+        <!-- SSM Parameter Store -->
+        <div class="step-card">
+          <div class="step-num" style="background:var(--gold);color:#000;">S</div>
+          <div class="step-title">SSM Parameter Store</div>
+          <div class="step-desc">Lambda CRUD ke RDS mengambil config via <code style="font-family:monospace;font-size:12px;color:var(--accent2);">/lks/database/{{KEY}}</code></div>
+          <div style="background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);">
+            <div class="ssm-row"><span class="ssm-key">/lks/database/dbname</span><span class="badge badge-accent">String</span><span class="ssm-val">lks_concert</span></div>
+            <div class="ssm-row"><span class="ssm-key">/lks/database/username</span><span class="badge badge-accent">String</span><span class="ssm-val">lks_admin</span></div>
+            <div class="ssm-row"><span class="ssm-key">/lks/database/password</span><span class="badge badge-red">SecureString</span><span class="ssm-val">••••••••</span></div>
+            <div class="ssm-row"><span class="ssm-key">/lks/database/endpoint</span><span class="badge badge-accent">String</span><span class="ssm-val" style="font-size:10px;">lks-rds.cluster.us-west-2.rds.amazonaws.com</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SQS PAGE ===== -->
+    <div class="page" id="page-sqs-page">
+      <div class="page-hero">
+        <h1>SQS Queue</h1>
+        <p>Decoupled Architecture — Antrian Pesan</p>
+        <div class="route-tag">lks-queue-order &nbsp;|&nbsp; lks-queue-payment &nbsp;|&nbsp; DLQ</div>
+      </div>
+
+      <!-- ORDER QUEUE -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="sec-header">
+          <div>
+            <div class="sec-title">lks-queue-order</div>
+            <div class="sec-sub">FIFO · Max 256KB · Visibility 30s · Retention 4 days · High Throughput</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span class="badge badge-accent" id="sqs-order-cnt">0 pesan</span>
+            <button class="btn btn-sm btn-primary" onclick="processNextOrder()">Proses Satu Pesan</button>
+            <button class="btn btn-sm" onclick="processAllOrders()">Proses Semua</button>
+          </div>
+        </div>
+
+        <!-- PIPELINE VIZ -->
+        <div class="queue-pipeline">
+          <div class="queue-stage" id="qs-api">
+            <div class="queue-stage-title">API Gateway</div>
+            <div class="queue-stage-main">POST /order</div>
+          </div>
+          <div class="queue-arrow"></div>
+          <div class="queue-stage" id="qs-lambda-q">
+            <div class="queue-stage-title">Lambda</div>
+            <div class="queue-stage-main">lks-queue-order</div>
+          </div>
+          <div class="queue-arrow"></div>
+          <div class="queue-stage" id="qs-sqs">
+            <div class="queue-stage-title">SQS FIFO</div>
+            <div class="queue-stage-main" id="qs-count">0 msg</div>
+          </div>
+          <div class="queue-arrow"></div>
+          <div class="queue-stage" id="qs-write">
+            <div class="queue-stage-title">Lambda</div>
+            <div class="queue-stage-main">lks-write-order</div>
+          </div>
+          <div class="queue-arrow"></div>
+          <div class="queue-stage" id="qs-rds">
+            <div class="queue-stage-title">RDS PostgreSQL</div>
+            <div class="queue-stage-main">INSERT orders</div>
+          </div>
+        </div>
+
+        <div id="order-queue-msgs">
+          <div style="font-size:13px;color:var(--text3);text-align:center;padding:20px;">Queue kosong — buat order di halaman Events</div>
+        </div>
+      </div>
+
+      <!-- PAYMENT QUEUE -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="sec-header">
+          <div>
+            <div class="sec-title">lks-queue-payment</div>
+            <div class="sec-sub">FIFO · Max 256KB · Visibility 30s · Retention 2 days · High Throughput</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span class="badge badge-gold" id="sqs-pay-cnt">0 pesan</span>
+            <button class="btn btn-sm" onclick="simulateS3Upload()">Simulasi S3 Upload</button>
+          </div>
+        </div>
+        <div class="queue-pipeline">
+          <div class="queue-stage"><div class="queue-stage-title">S3 Bucket</div><div class="queue-stage-main">proofOfPayment/</div></div>
+          <div class="queue-arrow"></div>
+          <div class="queue-stage"><div class="queue-stage-title">S3 Notification</div><div class="queue-stage-main">PutObject Event</div></div>
+          <div class="queue-arrow"></div>
+          <div class="queue-stage"><div class="queue-stage-title">SQS FIFO</div><div class="queue-stage-main" id="qs-pay-count">0 msg</div></div>
+          <div class="queue-arrow"></div>
+          <div class="queue-stage"><div class="queue-stage-title">Lambda</div><div class="queue-stage-main">lks-payment</div></div>
+        </div>
+        <div id="payment-queue-msgs">
+          <div style="font-size:13px;color:var(--text3);text-align:center;padding:20px;">Queue kosong</div>
+        </div>
+      </div>
+
+      <!-- DLQ -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="card card-sm">
+          <div class="sec-title" style="font-size:15px;margin-bottom:4px;">lks-queue-order-dlq</div>
+          <div class="sec-sub" style="margin-bottom:12px;">Dead Letter Queue — order gagal diproses</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div class="stat-val red" id="dlq-order-cnt">0</div>
+            <button class="btn btn-sm btn-danger" onclick="simulateDLQ('order')">Simulasi Gagal</button>
+          </div>
+          <div id="dlq-order-msgs" style="margin-top:12px;"></div>
+        </div>
+        <div class="card card-sm">
+          <div class="sec-title" style="font-size:15px;margin-bottom:4px;">lks-queue-payment-dlq</div>
+          <div class="sec-sub" style="margin-bottom:12px;">Dead Letter Queue — payment gagal diproses</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div class="stat-val red" id="dlq-pay-cnt">0</div>
+            <button class="btn btn-sm btn-danger" onclick="simulateDLQ('payment')">Simulasi Gagal</button>
+          </div>
+          <div id="dlq-pay-msgs" style="margin-top:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== WEBSOCKET PAGE ===== -->
+    <div class="page" id="page-websocket-page">
+      <div class="page-hero">
+        <h1>WebSocket API</h1>
+        <p>Real-time async notifications dari SQS consumer</p>
+        <div class="route-tag">API WebSocket — prod stage — $request.body.action</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <!-- LEFT: Connection & Routes -->
+        <div>
+          <div class="card" style="margin-bottom:16px;">
+            <div class="sec-title" style="font-size:15px;margin-bottom:12px;">Connection Control</div>
+            <div style="display:flex;gap:10px;margin-bottom:16px;">
+              <button class="btn btn-primary" id="ws-connect-btn" onclick="wsConnect()">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 8h5M8 5.5l2.5 2.5-2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Connect
+              </button>
+              <button class="btn btn-danger" onclick="wsDisconnect()">Disconnect</button>
+            </div>
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-size:12px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="color:var(--text3);">Status</span>
+                <span id="ws-status-text">Disconnected</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="color:var(--text3);">Connection ID</span>
+                <span id="ws-conn-id" style="font-family:monospace;color:var(--teal);">—</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="color:var(--text3);">Total Connections</span>
+                <span id="ws-total-conn">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:16px;">
+            <div class="sec-title" style="font-size:15px;margin-bottom:12px;">Routes</div>
+            <div class="ws-routes">
+              <button class="route-btn" onclick="wsSend('$connect')">$connect</button>
+              <button class="route-btn" onclick="wsSend('$disconnect')">$disconnect</button>
+              <button class="route-btn" onclick="wsSend('$default')">$default</button>
+              <button class="route-btn" onclick="wsSend('sendMessage')">sendMessage</button>
+              <button class="route-btn" onclick="wsSend('getConnectionId')">getConnectionId</button>
+              <button class="route-btn" onclick="broadcastMessage()">broadcastMessage</button>
+            </div>
+            <div class="form-group" style="margin-bottom:10px;">
+              <label class="form-label">Custom Message Body</label>
+              <input class="form-input" id="ws-custom-msg" placeholder='{"action":"sendMessage","data":"Hello!"}' />
+            </div>
+            <button class="btn btn-sm" onclick="wsSendCustom()">Kirim Custom</button>
+          </div>
+
+          <div class="card">
+            <div class="sec-title" style="font-size:15px;margin-bottom:8px;">Lambda lks-websocket</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.8;">
+              Semua route memanggil satu Lambda function yang berisi <code style="font-family:monospace;color:var(--accent2);">websocket.js</code>. Lambda memproses action dan:<br>
+              • <strong>$connect</strong> — Simpan connectionId ke DynamoDB<br>
+              • <strong>$disconnect</strong> — Hapus connectionId dari DynamoDB<br>
+              • <strong>sendMessage</strong> — Kirim ke connection tertentu<br>
+              • <strong>getConnectionId</strong> — Return connectionId ke client<br>
+              • <strong>broadcastMessage</strong> — Kirim ke semua connections<br>
+              • <strong>$default</strong> — Handler fallback
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Chat & Messages -->
+        <div>
+          <div class="sec-header">
+            <div class="sec-title">WebSocket Messages</div>
+            <button class="btn btn-sm" onclick="clearWsMessages()">Clear</button>
+          </div>
+          <div class="ws-messages" id="ws-messages">
+            <div class="ws-msg system">
+              <div>
+                <div class="ws-msg-bubble">WebSocket simulator siap. Klik Connect untuk memulai.</div>
+              </div>
+            </div>
+          </div>
+          <div class="ws-input-row" style="margin-top:10px;">
+            <input class="form-input" id="ws-msg-input" placeholder="Ketik pesan..." style="flex:1;" onkeydown="if(event.key==='Enter')wsSendText()" />
+            <button class="btn btn-primary" onclick="wsSendText()">Kirim</button>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="sec-title" style="font-size:14px;margin-bottom:10px;">Simulasi SQS → WebSocket Broadcast</div>
+            <button class="btn btn-gold" onclick="simulateOrderComplete()" style="width:100%;justify-content:center;margin-bottom:8px;">
+              Simulasi: Order Selesai Diproses
+            </button>
+            <button class="btn" onclick="simulatePaymentComplete()" style="width:100%;justify-content:center;">
+              Simulasi: Pembayaran Dikonfirmasi
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== LAMBDA LOGS ===== -->
+    <div class="page" id="page-lambda-page">
+      <div class="page-hero">
+        <h1>Lambda Logs</h1>
+        <p>CloudWatch Logs — semua Lambda function invocations</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <button class="btn btn-sm" onclick="filterLog('all', this)">All</button>
+        <button class="btn btn-sm" onclick="filterLog('lks-read-event', this)">lks-read-event</button>
+        <button class="btn btn-sm" onclick="filterLog('lks-write-event', this)">lks-write-event</button>
+        <button class="btn btn-sm" onclick="filterLog('lks-queue-order', this)">lks-queue-order</button>
+        <button class="btn btn-sm" onclick="filterLog('lks-write-order', this)">lks-write-order</button>
+        <button class="btn btn-sm" onclick="filterLog('lks-auth', this)">lks-auth</button>
+        <button class="btn btn-sm" onclick="filterLog('lks-token', this)">lks-token</button>
+        <button class="btn btn-sm" onclick="filterLog('lks-ticket', this)">lks-ticket</button>
+        <button class="btn btn-sm" onclick="filterLog('lks-payment', this)">lks-payment</button>
+        <button class="btn btn-sm" onclick="filterLog('lks-websocket', this)">lks-websocket</button>
+        <button class="btn btn-sm btn-danger" style="margin-left:auto;" onclick="clearAllLogs()">Clear</button>
+      </div>
+      <div class="terminal" id="lambda-terminal"></div>
+
+      <div class="sec-header" style="margin-top:28px;">
+        <div class="sec-title">Lambda Functions Registry</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Function Name</th><th>Handler</th><th>Runtime</th><th>Trigger</th><th>Invocations</th></tr></thead>
+          <tbody id="lambda-registry"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== ARCHITECTURE ===== -->
+    <div class="page" id="page-arch-page">
+      <div class="page-hero">
+        <h1>Architecture</h1>
+        <p>System design — Serverless on AWS us-west-2</p>
+      </div>
+
+      <div class="sec-header"><div class="sec-title">Request Flows</div></div>
+
+      <!-- Auth Flow -->
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Auth Flow</div>
+        <div class="arch-flow">
+          <div class="arch-node frontend">Vue.js Frontend (Amplify)</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node gateway">POST /token</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node lambda">AWS IAM Auth</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node lambda">lks-token (Lambda)</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node dynamo">DynamoDB tokens</div>
+        </div>
+      </div>
+
+      <!-- Event Read -->
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Read Events</div>
+        <div class="arch-flow">
+          <div class="arch-node frontend">Frontend</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node gateway">GET /event</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node lambda">lks-auth (Authorizer)</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node lambda">lks-read-event</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node db">RDS PostgreSQL</div>
+        </div>
+      </div>
+
+      <!-- Order Flow -->
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Order (Decoupled Architecture)</div>
+        <div class="arch-flow" style="flex-wrap:wrap;gap:4px;">
+          <div class="arch-node frontend">Frontend</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node gateway">POST /order</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node lambda">lks-auth</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node lambda">lks-queue-order</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node sqs">SQS lks-queue-order</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node lambda">lks-write-order</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node db">RDS</div>
+          <div class="arch-arrow-h">+</div>
+          <div class="arch-node gateway">WebSocket Broadcast</div>
+        </div>
+      </div>
+
+      <!-- Payment Flow -->
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Payment Flow</div>
+        <div class="arch-flow" style="flex-wrap:wrap;gap:4px;">
+          <div class="arch-node frontend">Frontend</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node gateway">PUT /payment/{filename}</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node s3">S3 proofOfPayment/</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node sqs">SQS lks-queue-payment</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node lambda">lks-payment</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node gateway">WebSocket Notify</div>
+        </div>
+      </div>
+
+      <!-- WebSocket -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">WebSocket API</div>
+        <div class="arch-flow" style="flex-wrap:wrap;gap:4px;">
+          <div class="arch-node frontend">Frontend</div>
+          <div class="arch-arrow-h">↔</div>
+          <div class="arch-node gateway">API WebSocket (prod)</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node lambda">lks-websocket (6 routes)</div>
+          <div class="arch-arrow-h">→</div>
+          <div class="arch-node dynamo">DynamoDB connections</div>
+        </div>
+      </div>
+
+      <!-- Services Table -->
+      <div class="sec-header"><div class="sec-title">AWS Services Summary</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Service</th><th>Resource Name</th><th>Config</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-teal">VPC</span></td><td style="font-family:monospace;font-size:12px;">lks-vpc</td><td style="font-size:12px;">15.32.0.0/16 · 2 pub + 4 priv · 2 AZ</td><td style="font-size:12px;color:var(--text2);">Network isolation</td></tr>
+            <tr><td><span class="badge badge-accent">Lambda</span></td><td style="font-family:monospace;font-size:12px;">lks-*</td><td style="font-size:12px;">NodeJS 16 · LabRole IAM</td><td style="font-size:12px;color:var(--text2);">Backend logic (8 functions)</td></tr>
+            <tr><td><span class="badge badge-accent">API Gateway REST</span></td><td style="font-family:monospace;font-size:12px;">lks-apiGateway</td><td style="font-size:12px;">stage: production · caching ON · CORS *</td><td style="font-size:12px;color:var(--text2);">REST endpoints</td></tr>
+            <tr><td><span class="badge badge-teal">API Gateway WS</span></td><td style="font-family:monospace;font-size:12px;">lks-websocket-api</td><td style="font-size:12px;">stage: prod · 6 routes</td><td style="font-size:12px;color:var(--text2);">Real-time notifications</td></tr>
+            <tr><td><span class="badge badge-gold">RDS PostgreSQL</span></td><td style="font-family:monospace;font-size:12px;">lks-rds</td><td style="font-size:12px;">Multi-AZ · Private subnet · No public</td><td style="font-size:12px;color:var(--text2);">Primary database</td></tr>
+            <tr><td><span class="badge badge-green">DynamoDB</span></td><td style="font-family:monospace;font-size:12px;">tokens</td><td style="font-size:12px;">Provisioned · RCU 10-100 · WCU 5-25 · 70% target</td><td style="font-size:12px;color:var(--text2);">Token storage</td></tr>
+            <tr><td><span class="badge badge-red">S3</span></td><td style="font-family:monospace;font-size:12px;">lks-YourName-YourProvince</td><td style="font-size:12px;">proofOfPayment/ · Glacier 6mo · Delete 1yr</td><td style="font-size:12px;color:var(--text2);">Payment evidence</td></tr>
+            <tr><td><span class="badge badge-gold">SQS</span></td><td style="font-family:monospace;font-size:12px;">lks-queue-order / lks-queue-payment</td><td style="font-size:12px;">FIFO · High Throughput · DLQ</td><td style="font-size:12px;color:var(--text2);">Decoupled messaging</td></tr>
+            <tr><td><span class="badge badge-accent">SSM Parameter</span></td><td style="font-family:monospace;font-size:12px;">/lks/database/*</td><td style="font-size:12px;">dbname · username · password (Secure) · endpoint</td><td style="font-size:12px;color:var(--text2);">DB config secrets</td></tr>
+            <tr><td><span class="badge badge-gray">Amplify</span></td><td style="font-family:monospace;font-size:12px;">lks-frontend</td><td style="font-size:12px;">Vue.js 3</td><td style="font-size:12px;color:var(--text2);">Frontend hosting</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ===================================================
+   STATE
+=================================================== */
+const state = {
+  events: [
+    { id:'evt-001', name:'Coldplay World Tour', artist:'Coldplay', location:'Jakarta', venue:'Gelora Bung Karno', date:'2025-08-15', time:'19:00', price:850000, tickets:500, desc:'Konser spektakuler Coldplay dengan teknologi LED terbaru.' },
+    { id:'evt-002', name:'Dewa 19 Reunion', artist:'Dewa 19', location:'Semarang', venue:'Simpang Lima', date:'2025-09-20', time:'20:00', price:350000, tickets:2000, desc:'Reuni legendaris Dewa 19, hadir dengan formasi lengkap.' },
+    { id:'evt-003', name:'Jazz Nusantara Festival', artist:'Various Artists', location:'Bandung', venue:'Sabuga ITB', date:'2025-10-05', time:'16:00', price:150000, tickets:3000, desc:'Festival jazz terbesar di Jawa Barat.' },
+  ],
+  orders: [],
+  tickets: [],
+  tokens: {},
+  sqsOrder: [],
+  sqsPayment: [],
+  dlqOrder: [],
+  dlqPayment: [],
+  payments: [],
+  logs: [],
+  wsConnected: false,
+  wsConnectionId: null,
+  wsConnections: [],
+  wsMessages: [],
+  logFilter: 'all',
+  selectedEvent: null,
+  lambdaInvocations: {},
+};
+
+const lambdaFunctions = [
+  { name:'lks-read-event', handler:'readEvent.handler', trigger:'API Gateway GET /event' },
+  { name:'lks-write-event', handler:'writeEvent.handler', trigger:'API Gateway POST,PUT,DELETE /event' },
+  { name:'lks-read-order', handler:'readOrder.handler', trigger:'API Gateway GET /order' },
+  { name:'lks-queue-order', handler:'queueOrder.handler', trigger:'API Gateway POST /order' },
+  { name:'lks-write-order', handler:'writeOrder.handler', trigger:'SQS lks-queue-order' },
+  { name:'lks-ticket', handler:'ticket.handler', trigger:'API Gateway POST,DELETE /ticket' },
+  { name:'lks-auth', handler:'auth.handler', trigger:'API Gateway Authorizer' },
+  { name:'lks-token', handler:'token.handler', trigger:'API Gateway POST /token' },
+  { name:'lks-payment', handler:'payment.handler', trigger:'SQS lks-queue-payment' },
+  { name:'lks-websocket', handler:'websocket.handler', trigger:'WebSocket API (6 routes)' },
+];
+
+const eventColors = ['#1a1a3e','#1a2a1a','#2a1a1a','#1a2a2a','#2a1a2a'];
+const eventEmojis = ['🎸','🎺','🥁','🎹','🎻','🎤','🎧','🎵'];
+
+/* ===================================================
+   UTILITIES
+=================================================== */
+function nowTs() { return new Date().toLocaleTimeString('id-ID', {hour12:false}); }
+function nowFull() { return new Date().toLocaleString('id-ID'); }
+function uid() { return Math.random().toString(36).substr(2,9).toUpperCase(); }
+function fmtRp(n) { return 'Rp ' + n.toLocaleString('id-ID'); }
+
+function toast(title, msg, type='info') {
+  const icons = { info:'ℹ️', success:'✅', error:'❌', ws:'🔌' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<div class="toast-icon">${icons[type]||'•'}</div><div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => { el.style.animation = 'toast-out 0.3s ease forwards'; setTimeout(()=>el.remove(), 300); }, 3500);
+}
+
+function addLog(fn, msg, type='ok') {
+  const colors = {
+    'lks-read-event':'#6de8fa','lks-write-event':'#e8c96d','lks-queue-order':'#a594ff',
+    'lks-write-order':'#6dfaaa','lks-auth':'#fa6d7c','lks-token':'#faaa6d',
+    'lks-ticket':'#6d9efa','lks-payment':'#fa9d6d','lks-websocket':'#c86dfa','system':'#555'
+  };
+  const entry = { fn, msg, type, ts: nowTs(), color: colors[fn] || '#888' };
+  state.logs.push(entry);
+  state.lambdaInvocations[fn] = (state.lambdaInvocations[fn] || 0) + 1;
+  renderTerminal();
+}
+
+function renderTerminal() {
+  const t = document.getElementById('lambda-terminal');
+  if (!t) return;
+  const filtered = state.logFilter === 'all' ? state.logs : state.logs.filter(l => l.fn === state.logFilter);
+  t.innerHTML = filtered.map(l => {
+    const cls = l.type === 'err' ? 'msg-err' : l.type === 'warn' ? 'msg-warn' : l.type === 'info' ? 'msg-info' : l.type === 'dim' ? 'msg-dim' : 'msg-ok';
+    return `<div class="log-line"><span class="ts">${l.ts}</span><span class="fn-tag" style="background:${l.color}22;color:${l.color}">${l.fn}</span><span class="${cls}">${l.msg}</span></div>`;
+  }).join('');
+  t.scrollTop = t.scrollHeight;
+}
+
+function filterLog(fn, btn) {
+  state.logFilter = fn;
+  document.querySelectorAll('.page#page-lambda-page .btn-sm').forEach(b => b.style.borderColor = '');
+  if (btn) btn.style.borderColor = 'var(--accent)';
+  renderTerminal();
+}
+
+function clearAllLogs() { state.logs = []; renderTerminal(); }
+
+/* ===================================================
+   NAVIGATION
+=================================================== */
+const pageTitles = {
+  dashboard:'Dashboard', events:'Events', orders:'Orders', tickets:'Tiket Saya',
+  payment:'Pembayaran', 'auth-page':'Auth & Token', 'sqs-page':'SQS Queue',
+  'websocket-page':'WebSocket API', 'lambda-page':'Lambda Logs', 'arch-page':'Architecture'
+};
+
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  document.getElementById('topbar-title').textContent = pageTitles[name] || name;
+
+  if (name === 'events') renderEvents();
+  if (name === 'orders') renderOrders();
+  if (name === 'tickets') renderTickets();
+  if (name === 'sqs-page') renderSQS();
+  if (name === 'lambda-page') { renderTerminal(); renderLambdaRegistry(); }
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'auth-page') renderDynamoTable();
+  if (name === 'payment') renderPaymentQueue();
+}
+
+/* ===================================================
+   MODAL
+=================================================== */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
+});
+
+/* ===================================================
+   EVENTS
+=================================================== */
+function renderEvents() {
+  const grid = document.getElementById('events-grid');
+  if (!grid) return;
+  const search = (document.getElementById('event-search')?.value || '').toLowerCase();
+  const evs = state.events.filter(e => !search || e.name.toLowerCase().includes(search) || e.location.toLowerCase().includes(search));
+
+  addLog('lks-read-event', `GET /event → SELECT * FROM events WHERE... (${evs.length} rows)`, 'ok');
+
+  grid.innerHTML = evs.map((ev, i) => `
+    <div class="event-card">
+      <div class="event-card-hero" style="background:${eventColors[i%eventColors.length]};">
+        <span style="font-size:64px;">${eventEmojis[i%eventEmojis.length]}</span>
+        <div class="ticket-badge">${ev.tickets} tiket tersisa</div>
+      </div>
+      <div class="event-card-body">
+        <div class="event-name">${ev.name}</div>
+        <div class="event-meta">
+          <div class="event-meta-item">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 2C5.2 2 3 4.2 3 7c0 4 5 9 5 9s5-5 5-9c0-2.8-2.2-5-5-5z" stroke="currentColor" stroke-width="1.3"/></svg>
+            ${ev.venue}, ${ev.location}
+          </div>
+          <div class="event-meta-item">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 7h12M5 2v2M11 2v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            ${ev.date} · ${ev.time}
+          </div>
+          <div class="event-meta-item" style="color:var(--text3);font-size:11px;">${ev.desc}</div>
+        </div>
+        <div class="event-footer">
+          <div>
+            <div class="event-price">${fmtRp(ev.price)}</div>
+            <div class="event-tickets">per tiket</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-sm btn-danger" onclick="deleteEvent('${ev.id}')">Hapus</button>
+            <button class="btn btn-sm btn-primary" onclick="openBuyModal('${ev.id}')">Beli Tiket</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('') || '<div style="color:var(--text3);padding:40px;text-align:center;">Tidak ada event ditemukan.</div>';
+}
+
+function submitAddEvent() {
+  const name = document.getElementById('ev-name').value.trim();
+  const artist = document.getElementById('ev-artist').value.trim();
+  const loc = document.getElementById('ev-loc').value.trim();
+  const venue = document.getElementById('ev-venue').value.trim();
+  const date = document.getElementById('ev-date').value;
+  const time = document.getElementById('ev-time').value;
+  const price = parseInt(document.getElementById('ev-price').value) || 0;
+  const tickets = parseInt(document.getElementById('ev-tickets').value) || 500;
+  const desc = document.getElementById('ev-desc').value.trim();
+  if (!name || !loc || !date || !price) { toast('Validasi Gagal', 'Harap isi semua field wajib!', 'error'); return; }
+
+  addLog('lks-write-event', `POST /event — Request received: "${name}"`, 'warn');
+  addLog('lks-auth', `Authorizer OK — userId: ${state.tokens[Object.keys(state.tokens)[0]]?.user || 'anonymous'}`, 'ok');
+  setTimeout(() => {
+    addLog('lks-write-event', `SSM GetParameter: /lks/database/endpoint`, 'dim');
+    setTimeout(() => {
+      addLog('lks-write-event', `SSM GetParameter: /lks/database/dbname, username, password`, 'dim');
+      setTimeout(() => {
+        const ev = { id:'evt-'+uid(), name, artist, location:loc, venue, date, time, price, tickets, desc };
+        state.events.push(ev);
+        updateBadges(); renderDashboard(); renderEvents();
+        closeModal('modal-add-event');
+        addLog('lks-write-event', `RDS: INSERT INTO events VALUES ('${ev.id}','${name}','${loc}',${price}) → 201 Created`, 'ok');
+        toast('Event Ditambahkan!', `"${name}" berhasil disimpan ke RDS.`, 'success');
+        ['ev-name','ev-artist','ev-loc','ev-venue','ev-date','ev-desc'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+      }, 400);
+    }, 300);
+  }, 200);
+}
+
+function deleteEvent(id) {
+  const ev = state.events.find(e => e.id === id);
+  if (!ev) return;
+  addLog('lks-write-event', `DELETE /event/${id} — "${ev.name}"`, 'warn');
+  setTimeout(() => {
+    addLog('lks-write-event', `RDS: DELETE FROM events WHERE id='${id}' → 200 OK`, 'ok');
+    state.events = state.events.filter(e => e.id !== id);
+    renderEvents(); renderDashboard(); updateBadges();
+    toast('Event Dihapus', `"${ev.name}" dihapus dari database.`, 'info');
+  }, 500);
+}
+
+/* ===================================================
+   ORDERS
+=================================================== */
+function openBuyModal(evId) {
+  if (!state.wsConnected && Object.keys(state.tokens).length === 0) {
+    toast('Perlu Login', 'Generate token dulu di halaman Auth!', 'error');
+  }
+  state.selectedEvent = state.events.find(e => e.id === evId);
+  const ev = state.selectedEvent;
+  document.getElementById('buy-event-info').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="font-size:32px;">${eventEmojis[state.events.indexOf(ev) % eventEmojis.length]}</div>
+      <div>
+        <div style="font-weight:600;font-size:15px;">${ev.name}</div>
+        <div style="font-size:12px;color:var(--text2);">${ev.venue}, ${ev.location} · ${ev.date}</div>
+        <div style="font-size:13px;color:var(--gold);font-weight:600;margin-top:4px;">${fmtRp(ev.price)} / tiket</div>
+      </div>
+    </div>`;
+  openModal('modal-buy');
+}
+
+function submitOrder() {
+  const name = document.getElementById('buy-name').value.trim();
+  const email = document.getElementById('buy-email').value.trim();
+  const phone = document.getElementById('buy-phone').value.trim();
+  const qty = parseInt(document.getElementById('buy-qty').value) || 1;
+  const cat = document.getElementById('buy-category').value;
+  if (!name || !email) { toast('Validasi Gagal', 'Nama dan email wajib diisi!', 'error'); return; }
+
+  const ev = state.selectedEvent;
+  const multiplier = cat === 'vip' ? 1.5 : cat === 'vvip' ? 2 : 1;
+  const total = Math.round(ev.price * qty * multiplier);
+  const orderId = 'ORD-' + uid();
+
+  addLog('lks-queue-order', `POST /order — ${name} · ${ev.name} × ${qty} [${cat.toUpperCase()}]`, 'warn');
+  addLog('lks-auth', `lks-auth: token valid → ALLOW · user: ${email}`, 'ok');
+
+  const msg = { id:orderId, eventId:ev.id, eventName:ev.name, name, email, phone, qty, category:cat, total, status:'queued', ts:nowFull() };
+  setTimeout(() => {
+    addLog('lks-queue-order', `SQS SendMessage: ${orderId} → lks-queue-order FIFO`, 'ok');
+    state.sqsOrder.push(msg);
+    updateBadges(); renderSQS(); renderOrders();
+    closeModal('modal-buy');
+    toast('Order Masuk Queue!', `${orderId} diantrekan di SQS.`, 'success');
+    addLog('lks-queue-order', `Response 202 Accepted: orderId=${orderId}`, 'ok');
+    // Auto broadcast ke websocket
+    if (state.wsConnected) {
+      setTimeout(() => wsReceive('system', `New order queued: ${orderId} (${ev.name} × ${qty})`), 800);
+    }
+  }, 400);
+}
+
+function renderOrders() {
+  const tbody = document.getElementById('orders-tbody');
+  if (!tbody) return;
+  addLog('lks-read-order', `GET /order → SELECT * FROM orders (${state.orders.length} rows)`, 'ok');
+  tbody.innerHTML = state.orders.map(o => `
+    <tr>
+      <td><div class="order-id">${o.id}</div></td>
+      <td>${o.eventName}</td>
+      <td>
+        <div style="font-weight:500;">${o.name}</div>
+        <div style="font-size:11px;color:var(--text3);">${o.email}</div>
+      </td>
+      <td>${o.qty}</td>
+      <td><span class="badge ${o.category==='vvip'?'badge-gold':o.category==='vip'?'badge-accent':'badge-gray'}">${o.category.toUpperCase()}</span></td>
+      <td style="color:var(--gold);font-weight:500;">${fmtRp(o.total)}</td>
+      <td><span class="badge badge-green">✓ Selesai</span></td>
+      <td><button class="btn btn-xs btn-danger" onclick="cancelOrder('${o.id}')">Batal</button></td>
+    </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px;">Belum ada order selesai.</td></tr>';
+
+  const total = state.orders.reduce((s,o) => s+o.total, 0);
+  const inq = document.getElementById('ord-queue'); if(inq) inq.textContent = state.sqsOrder.length;
+  const ot = document.getElementById('ord-total'); if(ot) ot.textContent = state.orders.length;
+  const or = document.getElementById('ord-revenue'); if(or) or.textContent = fmtRp(total);
+}
+
+function cancelOrder(id) {
+  state.orders = state.orders.filter(o => o.id !== id);
+  renderOrders(); updateBadges();
+  toast('Order Dibatalkan', 'DELETE /order → lks-write-order', 'info');
+}
+
+/* ===================================================
+   TICKETS
+=================================================== */
+function renderTickets() {
+  const c = document.getElementById('tickets-container');
+  if (!c) return;
+  addLog('lks-ticket', `GET /ticket → SELECT * FROM tickets WHERE userId=... (${state.tickets.length} rows)`, 'ok');
+  if (!state.tickets.length) {
+    c.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text3);"><div style="font-size:48px;margin-bottom:12px;">🎫</div><div>Belum ada tiket. Beli tiket di halaman Events!</div></div>`;
+    return;
+  }
+  c.innerHTML = state.tickets.map(t => `
+    <div class="ticket-card">
+      <div class="ticket-left"></div>
+      <div class="ticket-body">
+        <div class="ticket-id">TICKET #${t.id}</div>
+        <div class="ticket-event">${t.eventName}</div>
+        <div class="ticket-details">
+          <div class="ticket-detail"><span class="label">Pemesan</span><span class="value">${t.name}</span></div>
+          <div class="ticket-detail"><span class="label">Tanggal</span><span class="value">${t.date}</span></div>
+          <div class="ticket-detail"><span class="label">Venue</span><span class="value">${t.venue}</span></div>
+          <div class="ticket-detail"><span class="label">Kategori</span><span class="value">${t.category.toUpperCase()}</span></div>
+          <div class="ticket-detail"><span class="label">Qty</span><span class="value">${t.qty} tiket</span></div>
+        </div>
+      </div>
+      <div class="ticket-right">
+        <span class="badge badge-green">✓ Valid</span>
+        <div class="ticket-price">${fmtRp(t.total)}</div>
+        <button class="btn btn-xs btn-danger" onclick="deleteTicket('${t.id}')">Hapus</button>
+      </div>
+    </div>`).join('');
+}
+
+function deleteTicket(id) {
+  addLog('lks-ticket', `DELETE /ticket/${id}`, 'warn');
+  state.tickets = state.tickets.filter(t => t.id !== id);
+  renderTickets(); updateBadges();
+}
+
+/* ===================================================
+   SQS
+=================================================== */
+function renderSQS() {
+  const orderBox = document.getElementById('order-queue-msgs');
+  const payBox = document.getElementById('payment-queue-msgs');
+
+  if (orderBox) {
+    orderBox.innerHTML = state.sqsOrder.length
+      ? state.sqsOrder.map(m => `
+        <div class="queue-msg ${m.status==='processing'?'processing':''}">
+          <div>
+            <span style="font-family:monospace;font-size:11px;color:var(--text3);">${m.id}</span>
+            <div style="font-size:13px;margin-top:2px;">${m.name} · ${m.eventName} × ${m.qty} [${m.category.toUpperCase()}] · ${fmtRp(m.total)}</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span class="badge ${m.status==='processing'?'badge-gold':'badge-accent'}">${m.status}</span>
+            <button class="btn btn-xs btn-danger" onclick="failMsg('${m.id}')">Fail</button>
+          </div>
+        </div>`)
+        .join('')
+      : '<div style="font-size:13px;color:var(--text3);text-align:center;padding:16px;">Queue kosong</div>';
+  }
+
+  if (payBox) {
+    payBox.innerHTML = state.sqsPayment.length
+      ? state.sqsPayment.map(m => `
+        <div class="queue-msg">
+          <div>
+            <span style="font-family:monospace;font-size:11px;color:var(--text3);">${m.id}</span>
+            <div style="font-size:13px;margin-top:2px;">S3: proofOfPayment/${m.filename}</div>
+          </div>
+          <span class="badge badge-gold">${m.status}</span>
+        </div>`).join('')
+      : '<div style="font-size:13px;color:var(--text3);text-align:center;padding:16px;">Queue kosong</div>';
+  }
+
+  const qc = document.getElementById('qs-count'); if(qc) qc.textContent = state.sqsOrder.length + ' msg';
+  const qp = document.getElementById('qs-pay-count'); if(qp) qp.textContent = state.sqsPayment.length + ' msg';
+  const sc = document.getElementById('sqs-order-cnt'); if(sc) sc.textContent = state.sqsOrder.length + ' pesan';
+  const sp = document.getElementById('sqs-pay-cnt'); if(sp) sp.textContent = state.sqsPayment.length + ' pesan';
+
+  const dlqOrder = document.getElementById('dlq-order-msgs');
+  if (dlqOrder) dlqOrder.innerHTML = state.dlqOrder.map(m => `
+    <div class="queue-msg failed"><div style="font-size:12px;">${m.id} — ${m.reason}</div><span class="badge badge-red">DLQ</span></div>`).join('');
+  const dlqPay = document.getElementById('dlq-pay-msgs');
+  if (dlqPay) dlqPay.innerHTML = state.dlqPayment.map(m => `
+    <div class="queue-msg failed"><div style="font-size:12px;">${m.id} — ${m.reason}</div><span class="badge badge-red">DLQ</span></div>`).join('');
+
+  const doc = document.getElementById('dlq-order-cnt'); if(doc) doc.textContent = state.dlqOrder.length;
+  const dpc = document.getElementById('dlq-pay-cnt'); if(dpc) dpc.textContent = state.dlqPayment.length;
+}
+
+function processNextOrder() {
+  if (!state.sqsOrder.length) { toast('Queue Kosong', 'Tidak ada pesan untuk diproses.', 'info'); return; }
+  const msg = state.sqsOrder[0];
+  msg.status = 'processing';
+  renderSQS();
+
+  addLog('lks-write-order', `SQS ReceiveMessage: ${msg.id}`, 'info');
+  setTimeout(() => {
+    addLog('lks-write-order', `SSM: GetParameters /lks/database/* (4 params)`, 'dim');
+    setTimeout(() => {
+      addLog('lks-write-order', `RDS: INSERT INTO orders (id,event,name,email,qty,total) VALUES ('${msg.id}','${msg.eventName}','${msg.name}','${msg.email}',${msg.qty},${msg.total})`, 'ok');
+      setTimeout(() => {
+        state.sqsOrder.shift();
+        state.orders.push(msg);
+        // Create ticket
+        const ticket = { id:'TIX-'+uid(), orderId:msg.id, eventName:msg.eventName, name:msg.name, date: state.events.find(e=>e.id===msg.eventId)?.date||'-', venue: state.events.find(e=>e.id===msg.eventId)?.venue||'-', category:msg.category, qty:msg.qty, total:msg.total };
+        state.tickets.push(ticket);
+        addLog('lks-write-order', `SQS DeleteMessage: ${msg.id} → order & ticket saved`, 'ok');
+        addLog('lks-ticket', `POST /ticket → INSERT INTO tickets (${ticket.id}) → 201`, 'ok');
+        updateBadges(); renderSQS(); renderOrders();
+        toast('Order Diproses!', `${msg.id} berhasil disimpan ke RDS PostgreSQL.`, 'success');
+        // WebSocket broadcast
+        if (state.wsConnected) {
+          setTimeout(() => {
+            addLog('lks-websocket', `broadcastMessage: order ${msg.id} selesai → ${state.wsConnections.length} connections`, 'ok');
+            wsReceive('broadcast', `✅ Order ${msg.id} selesai! ${msg.name} · ${msg.eventName} × ${msg.qty}`);
+          }, 600);
+        }
+      }, 500);
+    }, 300);
+  }, 300);
+}
+
+function processAllOrders() {
+  if (!state.sqsOrder.length) { toast('Queue Kosong', 'Tidak ada pesan.', 'info'); return; }
+  let delay = 0;
+  const count = state.sqsOrder.length;
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => processNextOrder(), delay);
+    delay += 800;
+  }
+}
+
+function failMsg(id) {
+  const msg = state.sqsOrder.find(m => m.id === id);
+  if (!msg) return;
+  state.sqsOrder = state.sqsOrder.filter(m => m.id !== id);
+  state.dlqOrder.push({ ...msg, reason: 'Max retries exceeded' });
+  addLog('lks-write-order', `Message ${id} failed → moved to DLQ`, 'err');
+  renderSQS(); updateBadges();
+  toast('Pesan Gagal', `${id} dipindah ke Dead Letter Queue.`, 'error');
+}
+
+function simulateS3Upload() {
+  const filename = 'bukti-' + Date.now() + '.jpg';
+  const msgId = 'PAY-' + uid();
+  addLog('lks-payment', `S3 PutObject: lks-app/proofOfPayment/${filename}`, 'warn');
+  setTimeout(() => {
+    state.sqsPayment.push({ id:msgId, filename, status:'queued' });
+    addLog('lks-payment', `S3 notification → SQS SendMessage: ${msgId} → lks-queue-payment`, 'ok');
+    renderSQS();
+    setTimeout(() => {
+      addLog('lks-payment', `Lambda trigger: SQS ${msgId} → lks-payment processing...`, 'info');
+      setTimeout(() => {
+        state.sqsPayment = state.sqsPayment.filter(m => m.id !== msgId);
+        addLog('lks-payment', `Payment ${msgId} processed → RDS UPDATE orders SET status='paid'`, 'ok');
+        renderSQS();
+        toast('Pembayaran Diproses', `${filename} berhasil diproses oleh lks-payment.`, 'success');
+        if (state.wsConnected) wsReceive('broadcast', `💳 Payment confirmed: ${filename}`);
+      }, 1500);
+    }, 800);
+  }, 400);
+}
+
+function simulateDLQ(type) {
+  const id = (type==='order'?'ORD':'PAY') + '-FAIL-' + uid();
+  const reason = 'RDS connection timeout after 3 retries';
+  if (type==='order') state.dlqOrder.push({ id, reason });
+  else state.dlqPayment.push({ id, reason });
+  addLog('lks-write-order', `Message ${id} → DLQ: ${reason}`, 'err');
+  renderSQS();
+  toast('DLQ', `${id} masuk Dead Letter Queue.`, 'error');
+}
+
+/* ===================================================
+   AUTH & TOKEN
+=================================================== */
+function generateToken() {
+  const user = document.getElementById('auth-user').value.trim() || 'user@soundwave.id';
+  const device = document.getElementById('auth-device').value.trim() || 'device-001';
+
+  addLog('lks-token', `POST /token — AWS IAM Signature OK · user: ${user} · device: ${device}`, 'warn');
+  setTimeout(() => {
+    const token = 'lks.' + btoa(user + ':' + device + ':' + Date.now()).replace(/=/g,'').substring(0,40);
+    state.tokens[token] = { user, device, created: nowFull() };
+    addLog('lks-token', `DynamoDB PutItem: tokens pk="${token.substring(0,24)}..." sk="${device}"`, 'ok');
+    setTimeout(() => {
+      document.getElementById('token-val').textContent = token + '\n\nHeader Example:\nAuthorization: Bearer ' + token + '\nDeviceid: ' + device;
+      document.getElementById('token-result').style.display = 'block';
+      document.getElementById('val-token').value = token;
+      document.getElementById('val-device').value = device;
+
+      // Update auth bar
+      const bar = document.getElementById('auth-status-bar');
+      bar.className = 'auth-status authed';
+      bar.innerHTML = `<span>●</span> ${user}`;
+
+      addLog('lks-token', `Response 200: token generated`, 'ok');
+      toast('Token Dibuat!', `Token berhasil disimpan ke DynamoDB.`, 'success');
+      renderDynamoTable();
+    }, 300);
+  }, 600);
+}
+
+function validateToken() {
+  const token = document.getElementById('val-token').value.trim();
+  const device = document.getElementById('val-device').value.trim();
+  const res = document.getElementById('val-result');
+  if (!token) { res.innerHTML = '<span style="color:var(--red);">Token kosong!</span>'; return; }
+
+  addLog('lks-auth', `Authorizer invoked: Authorization header received · deviceid: ${device}`, 'info');
+  setTimeout(() => {
+    addLog('lks-auth', `DynamoDB GetItem: tokens pk="${token.substring(0,24)}..." sk="${device}"`, 'dim');
+    setTimeout(() => {
+      const valid = !!state.tokens[token] && (!device || state.tokens[token].device === device);
+      if (valid) {
+        res.innerHTML = `<div class="badge badge-green" style="font-size:13px;padding:6px 12px;">✓ ALLOW — Token valid · user: ${state.tokens[token].user}</div>`;
+        addLog('lks-auth', `IAM Policy Effect=Allow · Principal=${state.tokens[token].user} → 200`, 'ok');
+        toast('Token Valid', 'Akses diizinkan oleh lks-auth.', 'success');
+      } else {
+        res.innerHTML = `<div class="badge badge-red" style="font-size:13px;padding:6px 12px;">✗ DENY — Token tidak ditemukan di DynamoDB</div>`;
+        addLog('lks-auth', `IAM Policy Effect=Deny → 403 Forbidden`, 'err');
+        toast('Token Invalid', 'Akses ditolak oleh lks-auth.', 'error');
+      }
+    }, 400);
+  }, 400);
+}
+
+function renderDynamoTable() {
+  const t = document.getElementById('dynamo-table');
+  if (!t) return;
+  const tokens = Object.entries(state.tokens);
+  if (!tokens.length) { t.innerHTML = ''; return; }
+  t.innerHTML = `<div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Data di DynamoDB (${tokens.length} items)</div>` +
+    tokens.map(([tok, d]) => `
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;margin-bottom:6px;font-size:11px;">
+        <div style="font-family:monospace;color:var(--accent2);word-break:break-all;">${tok.substring(0,36)}...</div>
+        <div style="color:var(--text3);margin-top:4px;">user: ${d.user} · device: ${d.device}</div>
+      </div>`).join('');
+}
+
+/* ===================================================
+   PAYMENT
+=================================================== */
+let uploadCounter = 0;
+function simulateUpload() {
+  uploadCounter++;
+  const filename = `bukti-transfer-${uploadCounter}-${Date.now()}.jpg`;
+  const payId = 'PAY-' + uid();
+
+  const list = document.getElementById('upload-list');
+  const item = document.createElement('div');
+  item.className = 'payment-status';
+  item.id = 'pay-' + payId;
+  item.innerHTML = `
+    <div class="payment-icon">📄</div>
+    <div class="payment-info" style="flex:1;">
+      <div class="payment-name">${filename}</div>
+      <div class="payment-sub">Mengupload ke S3...</div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="pb-${payId}" style="width:0%"></div></div>
+    </div>
+    <div class="payment-status-badge"><span class="badge badge-gold" id="ps-${payId}">Uploading</span></div>`;
+  list.prepend(item);
+
+  addLog('lks-payment', `PUT /payment/${filename} → S3 PutObject started`, 'warn');
+
+  // Progress bar animation
+  let pct = 0;
+  const iv = setInterval(() => {
+    pct += Math.random() * 25;
+    if (pct > 100) pct = 100;
+    const pb = document.getElementById('pb-'+payId);
+    if (pb) pb.style.width = pct + '%';
+    if (pct >= 100) {
+      clearInterval(iv);
+      const ps = document.getElementById('ps-'+payId);
+      if (ps) { ps.className = 'badge badge-green'; ps.textContent = '✓ Uploaded'; }
+      const sub = item.querySelector('.payment-sub');
+      if (sub) sub.textContent = `S3: lks-YourName-YourProvince/proofOfPayment/${filename}`;
+      addLog('lks-payment', `S3 Upload OK: proofOfPayment/${filename} → SQS notification`, 'ok');
+
+      // Trigger SQS
+      state.sqsPayment.push({ id:payId, filename, status:'queued' });
+      state.payments.push({ id:payId, filename });
+      renderSQS(); renderPaymentQueue();
+      addLog('lks-payment', `SQS SendMessage: ${payId} → lks-queue-payment`, 'ok');
+      toast('Upload Berhasil!', `${filename} → S3 → SQS`, 'success');
+
+      // Auto process
+      setTimeout(() => {
+        state.sqsPayment = state.sqsPayment.filter(m => m.id !== payId);
+        addLog('lks-payment', `lks-payment Lambda: processing ${payId}... RDS UPDATE orders SET status='paid' WHERE paymentRef='${payId}'`, 'ok');
+        renderSQS(); renderPaymentQueue();
+        if (state.wsConnected) wsReceive('broadcast', `💳 Payment confirmed: ${filename}`);
+      }, 2500);
+    }
+  }, 120);
+}
+
+function renderPaymentQueue() {
+  const el = document.getElementById('payment-queue-list');
+  if (!el) return;
+  el.innerHTML = state.payments.length
+    ? state.payments.map(p => `
+      <div class="payment-status">
+        <div class="payment-icon">💳</div>
+        <div class="payment-info">
+          <div class="payment-name">${p.filename}</div>
+          <div class="payment-sub" style="font-family:monospace;font-size:11px;">${p.id}</div>
+        </div>
+        <span class="badge badge-green">Processed</span>
+      </div>`).join('')
+    : '<div style="font-size:13px;color:var(--text3);text-align:center;padding:20px;">Belum ada upload</div>';
+}
+
+/* ===================================================
+   WEBSOCKET SIMULATOR
+=================================================== */
+function wsAddMessage(type, content, meta='') {
+  const container = document.getElementById('ws-messages');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = `ws-msg ${type}`;
+  const ts = nowTs();
+  if (type === 'sent') {
+    div.innerHTML = `<div style="flex:1;display:flex;flex-direction:column;align-items:flex-end;"><div class="ws-msg-bubble">${content}</div><div class="ws-msg-meta">${meta||'Sent'} · ${ts}</div></div>`;
+  } else {
+    div.innerHTML = `<div><div class="ws-msg-bubble">${content}</div><div class="ws-msg-meta">${meta||'Server'} · ${ts}</div></div>`;
+  }
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function wsReceive(type, content, meta) { wsAddMessage(type, content, meta); }
+
+function wsConnect() {
+  if (state.wsConnected) return;
+  const dot = document.getElementById('ws-sidebar-dot');
+  const lbl = document.getElementById('ws-sidebar-label');
+  dot.className = 'ws-dot connecting';
+  lbl.textContent = 'Connecting...';
+
+  document.getElementById('ws-status-text').textContent = 'Connecting...';
+  addLog('lks-websocket', `$connect route invoked`, 'warn');
+
+  setTimeout(() => {
+    state.wsConnected = true;
+    state.wsConnectionId = 'conn-' + uid();
+    state.wsConnections.push(state.wsConnectionId);
+
+    dot.className = 'ws-dot connected';
+    lbl.textContent = 'WebSocket: connected';
+    document.getElementById('ws-status-text').textContent = 'Connected';
+    document.getElementById('ws-conn-id').textContent = state.wsConnectionId;
+    document.getElementById('ws-total-conn').textContent = state.wsConnections.length;
+    document.getElementById('dash-ws').textContent = state.wsConnections.length;
+
+    addLog('lks-websocket', `$connect: connectionId=${state.wsConnectionId} saved to DynamoDB`, 'ok');
+    wsReceive('system', `Connected. connectionId: ${state.wsConnectionId}`);
+    toast('WebSocket Connected!', `connectionId: ${state.wsConnectionId}`, 'ws');
+  }, 800);
+}
+
+function wsDisconnect() {
+  if (!state.wsConnected) return;
+  addLog('lks-websocket', `$disconnect: connectionId=${state.wsConnectionId} removed from DynamoDB`, 'warn');
+  state.wsConnected = false;
+  state.wsConnections = state.wsConnections.filter(c => c !== state.wsConnectionId);
+  state.wsConnectionId = null;
+
+  const dot = document.getElementById('ws-sidebar-dot');
+  const lbl = document.getElementById('ws-sidebar-label');
+  dot.className = 'ws-dot';
+  lbl.textContent = 'WebSocket: offline';
+  document.getElementById('ws-status-text').textContent = 'Disconnected';
+  document.getElementById('ws-conn-id').textContent = '—';
+  document.getElementById('ws-total-conn').textContent = state.wsConnections.length;
+  document.getElementById('dash-ws').textContent = state.wsConnections.length;
+
+  wsReceive('system', 'Disconnected from WebSocket API.');
+  toast('WebSocket Disconnected', 'Koneksi ditutup.', 'info');
+}
+
+function wsSend(route) {
+  if (!state.wsConnected) { toast('Tidak Terkoneksi', 'Connect dulu ke WebSocket!', 'error'); return; }
+  const payload = JSON.stringify({ action: route, connectionId: state.wsConnectionId });
+  wsAddMessage('sent', `action: ${route}`, 'Client');
+  addLog('lks-websocket', `Route: ${route} → lks-websocket Lambda invoked`, 'info');
+
+  setTimeout(() => {
+    if (route === 'getConnectionId') {
+      wsReceive('received', `{ "connectionId": "${state.wsConnectionId}" }`, 'Server');
+      addLog('lks-websocket', `getConnectionId: returned ${state.wsConnectionId}`, 'ok');
+    } else if (route === 'sendMessage') {
+      wsReceive('received', 'Message received by server.', 'Server');
+      addLog('lks-websocket', `sendMessage: delivered to ${state.wsConnectionId}`, 'ok');
+    } else if (route === '$default') {
+      wsReceive('system', 'Default route handler invoked.', 'Server');
+    } else if (route === '$connect' || route === '$disconnect') {
+      wsReceive('system', `${route} handler processed.`, 'Server');
+    }
+  }, 300);
+}
+
+function broadcastMessage() {
+  if (!state.wsConnected) { toast('Tidak Terkoneksi', 'Connect dulu!', 'error'); return; }
+  const msg = document.getElementById('ws-msg-input')?.value || 'Broadcast test!';
+  wsAddMessage('sent', `[BROADCAST] ${msg}`, 'Client');
+  addLog('lks-websocket', `broadcastMessage: sending to ${state.wsConnections.length} connection(s)`, 'info');
+  setTimeout(() => {
+    wsReceive('broadcast', `📢 Broadcast: ${msg}`, 'Server → All Clients');
+    addLog('lks-websocket', `broadcastMessage: delivered to all connections`, 'ok');
+  }, 400);
+}
+
+function wsSendText() {
+  if (!state.wsConnected) { toast('Tidak Terkoneksi', 'Connect dulu!', 'error'); return; }
+  const input = document.getElementById('ws-msg-input');
+  const text = input.value.trim();
+  if (!text) return;
+  wsAddMessage('sent', text, 'Client');
+  addLog('lks-websocket', `sendMessage: "${text.substring(0,40)}"`, 'info');
+  input.value = '';
+  setTimeout(() => wsReceive('received', `Echo: ${text}`, 'lks-websocket'), 300);
+}
+
+function wsSendCustom() {
+  if (!state.wsConnected) { toast('Tidak Terkoneksi', 'Connect dulu!', 'error'); return; }
+  const raw = document.getElementById('ws-custom-msg').value.trim();
+  try {
+    const parsed = JSON.parse(raw);
+    wsAddMessage('sent', raw, 'Client (custom)');
+    addLog('lks-websocket', `Custom message: action=${parsed.action}`, 'info');
+    setTimeout(() => wsReceive('received', `Processed action: ${parsed.action}`, 'Server'), 300);
+  } catch(e) {
+    toast('JSON Invalid', 'Format pesan harus JSON valid!', 'error');
+  }
+}
+
+function clearWsMessages() {
+  document.getElementById('ws-messages').innerHTML = '<div class="ws-msg system"><div><div class="ws-msg-bubble">Messages cleared.</div></div></div>';
+}
+
+function simulateOrderComplete() {
+  if (!state.wsConnected) { wsConnect(); setTimeout(simulateOrderComplete, 1000); return; }
+  const ordId = 'ORD-' + uid();
+  addLog('lks-write-order', `SQS consumer processed ${ordId} → WebSocket broadcast`, 'ok');
+  addLog('lks-websocket', `broadcastMessage from SQS consumer: order ${ordId} complete`, 'ok');
+  wsReceive('broadcast', `✅ Order ${ordId} berhasil diproses!\nEvent: Coldplay World Tour\nStatus: Confirmed`, 'SQS Consumer → WebSocket');
+  toast('WS Broadcast!', `Order ${ordId} notification dikirim via WebSocket.`, 'ws');
+}
+
+function simulatePaymentComplete() {
+  if (!state.wsConnected) { wsConnect(); setTimeout(simulatePaymentComplete, 1000); return; }
+  const payId = 'PAY-' + uid();
+  addLog('lks-payment', `Payment ${payId} verified → WebSocket notify`, 'ok');
+  addLog('lks-websocket', `sendMessage: payment confirmed to connectionId=${state.wsConnectionId}`, 'ok');
+  wsReceive('broadcast', `💳 Pembayaran Dikonfirmasi!\nRef: ${payId}\nStatus: PAID\nUpdate order ke database selesai.`, 'lks-payment → WebSocket');
+  toast('Payment Confirmed!', `Notifikasi dikirim via WebSocket.`, 'ws');
+}
+
+/* ===================================================
+   DASHBOARD
+=================================================== */
+function renderDashboard() {
+  document.getElementById('dash-events').textContent = state.events.length;
+  document.getElementById('dash-orders').textContent = state.orders.length;
+  document.getElementById('dash-queue').textContent = state.sqsOrder.length + state.sqsPayment.length;
+  document.getElementById('dash-ws').textContent = state.wsConnections.length;
+
+  const el = document.getElementById('dash-event-list');
+  if (el) {
+    el.innerHTML = state.events.slice(0,3).map((ev, i) => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;">
+        <div style="font-size:28px;">${eventEmojis[i%eventEmojis.length]}</div>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:14px;">${ev.name}</div>
+          <div style="font-size:12px;color:var(--text2);">${ev.location} · ${ev.date}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="color:var(--gold);font-weight:600;font-size:14px;">${fmtRp(ev.price)}</div>
+          <button class="btn btn-xs btn-primary" onclick="openBuyModal('${ev.id}')" style="margin-top:4px;">Beli</button>
+        </div>
+      </div>`).join('');
+  }
+
+  const awsEl = document.getElementById('aws-status-list');
+  const services = [
+    { name:'VPC (us-west-2)', status:'running', detail:'15.32.0.0/16' },
+    { name:'API Gateway REST', status:'running', detail:'production stage' },
+    { name:'API Gateway WS', status: state.wsConnected ? 'running' : 'idle', detail:'prod stage · 6 routes' },
+    { name:'RDS PostgreSQL', status:'running', detail:'Multi-AZ · Private' },
+    { name:'DynamoDB tokens', status:'running', detail:`${Object.keys(state.tokens).length} items` },
+    { name:'SQS Queue Order', status: state.sqsOrder.length > 0 ? 'busy' : 'idle', detail:`${state.sqsOrder.length} messages` },
+    { name:'SQS Queue Payment', status: state.sqsPayment.length > 0 ? 'busy' : 'idle', detail:`${state.sqsPayment.length} messages` },
+    { name:'Lambda Functions', status:'running', detail:'10 functions · NodeJS 16' },
+  ];
+  if (awsEl) awsEl.innerHTML = services.map(s => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);">
+      <div style="width:8px;height:8px;border-radius:50%;background:${s.status==='running'?'var(--green)':s.status==='busy'?'var(--gold)':'var(--text3)'};flex-shrink:0;${s.status==='running'?'box-shadow:0 0 6px var(--green)':''}"></div>
+      <div style="flex:1;font-size:13px;">${s.name}</div>
+      <div style="font-size:11px;color:var(--text3);">${s.detail}</div>
+    </div>`).join('');
+}
+
+/* ===================================================
+   LAMBDA REGISTRY
+=================================================== */
+function renderLambdaRegistry() {
+  const tbody = document.getElementById('lambda-registry');
+  if (!tbody) return;
+  tbody.innerHTML = lambdaFunctions.map(f => `
+    <tr>
+      <td style="font-family:monospace;font-size:12px;color:var(--accent2);">${f.name}</td>
+      <td style="font-family:monospace;font-size:12px;">${f.handler}</td>
+      <td><span class="badge badge-green">NodeJS 16</span></td>
+      <td style="font-size:12px;color:var(--text2);">${f.trigger}</td>
+      <td><span class="badge badge-accent">${state.lambdaInvocations[f.name] || 0}</span></td>
+    </tr>`).join('');
+}
+
+/* ===================================================
+   BADGES & UPDATES
+=================================================== */
+function updateBadges() {
+  document.getElementById('nb-events').textContent = state.events.length;
+  document.getElementById('nb-orders').textContent = state.orders.length;
+  document.getElementById('nb-tickets').textContent = state.tickets.length;
+  document.getElementById('nb-sqs').textContent = state.sqsOrder.length + state.sqsPayment.length;
+}
+
+/* ===================================================
+   INIT
+=================================================== */
+addLog('system', 'Application initialized · Region: us-west-2 · Runtime: NodeJS 16', 'dim');
+addLog('lks-read-event', 'GET /event → Lambda cold start...', 'dim');
+addLog('lks-read-event', 'RDS: SELECT * FROM events (3 rows) → 200 OK', 'ok');
+
+renderDashboard();
+updateBadges();
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "soundwave-serverless-backend",
+  "version": "1.0.0",
+  "description": "Monorepo backend untuk tiket konser Soundwave Serverless",
+  "main": "auth.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.0.0",
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/client-sqs": "^3.0.0",
+    "@aws-sdk/client-ssm": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0",
+    "pg": "^8.11.3"
+  },
+  "author": "",
+  "license": "ISC"
+}
