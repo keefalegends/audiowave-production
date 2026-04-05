@@ -12,7 +12,8 @@
     "@aws-sdk/client-sqs": "^3.0.0",
     "@aws-sdk/client-ssm": "^3.0.0",
     "@aws-sdk/lib-dynamodb": "^3.0.0",
-    "pg": "^8.11.3"
+    "moment": "^2.30.1",
+    "pg": "^8.20.0"
   },
   "author": "",
   "license": "ISC"
