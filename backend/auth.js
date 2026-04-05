@@ -1,46 +1,70 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { GetCommand, DynamoDBDocumentClient } = require("@aws-sdk/lib-dynamodb");
+const {
+   GetItemCommand,
+   DynamoDBClient,
+} = require("/opt/node_modules/@aws-sdk/client-dynamodb");
+const {
+   marshall,
+   unmarshall,
+} = require("/opt/node_modules/@aws-sdk/util-dynamodb");
+const moment = require("/opt/node_modules/moment");
 
-const client = new DynamoDBClient({ region: "us-west-2" });
-const docClient = DynamoDBDocumentClient.from(client);
+const config = { region: "us-east-1" };
+const client = new DynamoDBClient(config);
+const TableName = "tokens";
 
-// Fungsi pembantu untuk membuat response IAM Policy Authorizer
-const generatePolicy = (principalId, effect, resource) => {
-    const authResponse = { principalId: principalId };
-    if (effect && resource) {
-        const policyDocument = {
-            Version: '2012-10-17',
-            Statement: [{ Action: 'execute-api:Invoke', Effect: effect, Resource: resource }]
-        };
-        authResponse.policyDocument = policyDocument;
-    }
-    return authResponse;
+const generatePolicy = (id, permission, resource) => {
+   return {
+      principalId: `${id}`,
+      policyDocument: {
+         Version: "2012-10-17",
+         Statement: [
+            {
+               Effect: `${permission}`,
+               Action: "execute-api:Invoke",
+               Resource: `${resource}`,
+            },
+         ],
+      },
+      context: {
+         scope: null,
+      },
+   };
 };
 
-exports.handler = async (event) => {
-    // API Gateway Authorizer format
-    const token = event.authorizationToken?.replace('Bearer ', '') || '';
-    const deviceId = event.headers?.Deviceid || event.headers?.deviceid || '';
-    
-    if (!token) return generatePolicy('user', 'Deny', event.methodArn);
+module.exports.handler = async (event, context, callback) => {
+   try {
+      const token = event.headers.Authorization;
+      const deviceId = event.headers.Deviceid || event.headers.deviceid;
+      const resource = event.methodArn;
 
-    try {
-        const command = new GetCommand({
-            TableName: "tokens",
-            Key: { token: token, deviceid: deviceId }
-        });
+      const params = {
+         TableName,
+         Key: marshall({
+            token,
+            deviceId,
+         }),
+      };
 
-        const response = await docClient.send(command);
+      const getCommand = new GetItemCommand(params);
+      const response = await client.send(getCommand);
 
-        if (response.Item) {
-            // Token valid, izinkan akses API
-            return generatePolicy(response.Item.userId, 'Allow', event.methodArn);
-        } else {
-            // Token tidak ditemukan / tidak cocok
-            return generatePolicy('user', 'Deny', event.methodArn);
-        }
-    } catch (error) {
-        console.error("Auth error:", error);
-        return generatePolicy('user', 'Deny', event.methodArn);
-    }
+      if (response.Item) {
+         const validToken = unmarshall(response.Item);
+         const currentDate = moment();
+         const hasPassed = moment(currentDate).isBefore(validToken.expiredDate);
+
+         if (hasPassed) {
+            return generatePolicy("authId", "Allow", resource);
+         } else {
+            console.error("Token expired!");
+            return generatePolicy("authId", "Deny", resource);
+         }
+      } else {
+         console.error("Invalid Token!");
+         return generatePolicy("authId", "Deny", resource);
+      }
+   } catch (e) {
+      console.error("Auth error : " + e);
+      return generatePolicy("authId", "Deny", event.methodArn);
+   }
 };
