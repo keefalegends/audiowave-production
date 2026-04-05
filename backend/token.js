@@ -1,46 +1,65 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { PutCommand, DynamoDBDocumentClient } = require("@aws-sdk/lib-dynamodb");
-const crypto = require("crypto");
+const { DynamoDBClient, PutItemCommand } = require("/opt/node_modules/@aws-sdk/client-dynamodb");
+const { marshall } = require("/opt/node_modules/@aws-sdk/util-dynamodb");
+const moment = require("/opt/node_modules/moment");
+const crypto = require("crypto"); 
 
-const client = new DynamoDBClient({ region: "us-west-2" });
-const docClient = DynamoDBDocumentClient.from(client);
+const config = { region: "us-west-2" };
+const client = new DynamoDBClient(config);
+const TableName = "tokens"; 
 
-exports.handler = async (event) => {
-    try {
-        const body = JSON.parse(event.body);
-        const userEmail = body.userEmail || "admin@soundwave.id";
-        const deviceId = body.deviceId || "dev-01";
+module.exports.handler = async (event) => {
+   try {
+      const body = JSON.parse(event.body || "{}");
+      const { username, password, deviceId } = body;
 
-        const rawTokenStr = userEmail + ":" + deviceId + ":" + Date.now().toString();
-        const generatedToken = "lks." + crypto.createHash('sha256').update(rawTokenStr).digest('hex').substring(0, 40);
+      if (!username || !password || !deviceId) {
+         return {
+            statusCode: 400,
+            body: JSON.stringify({ message: "Username, password, and deviceId are required!" })
+         };
+      }
 
-        const command = new PutCommand({
-            TableName: "tokens",
-            Item: {
-                token: generatedToken,
-                deviceid: deviceId,
-                userId: userEmail,
-                createdAt: new Date().toISOString()
-            }
-        });
+      if (username !== "lks" || password !== "juara1") {
+         return {
+            statusCode: 401,
+            body: JSON.stringify({ message: "Invalid username or password" })
+         };
+      }
 
-        await docClient.send(command);
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiredDate = moment().add(3, 'hours').toISOString(); 
 
-        return {
-            statusCode: 200,
-            headers: { 'Access-Control-Allow-Origin': '*' },
-            body: JSON.stringify({ 
-                message: "Token berhasil dibuat", 
-                token: generatedToken,
-                deviceid: deviceId
-            })
-        };
+      const params = {
+         TableName,
+         Item: marshall({
+            token: token,
+            deviceId: deviceId, 
+            expiredDate: expiredDate,
+            username: username
+         }),
+      };
 
-    } catch (error) {
-        return {
-            statusCode: 500,
-            headers: { 'Access-Control-Allow-Origin': '*' },
-            body: JSON.stringify({ error: error.message })
-        };
-    }
+      await client.send(new PutItemCommand(params));
+
+      return {
+         statusCode: 200,
+         headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*" 
+         },
+         body: JSON.stringify({
+            message: "Login successful",
+            token: token,
+            deviceId: deviceId,
+            expires_at: expiredDate
+         }),
+      };
+
+   } catch (error) {
+      console.error("Kesalahan System Login:", error);
+      return {
+         statusCode: 500,
+         body: JSON.stringify({ message: "Internal Server Error", error: error.message })
+      };
+   }
 };

@@ -8,7 +8,7 @@ const {
 } = require("/opt/node_modules/@aws-sdk/util-dynamodb");
 const moment = require("/opt/node_modules/moment");
 
-const config = { region: "us-east-1" };
+const config = { region: "us-west-2" };
 const client = new DynamoDBClient(config);
 const TableName = "tokens";
 
