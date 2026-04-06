@@ -1,16 +1,12 @@
 // ===== KONFIGURASI =====
 // Ganti API_BASE_URL dengan Invoke URL dari API Gateway AWS yang nanti Anda deploy
-const API_BASE_URL = '';
+const API_BASE_URL = 'https://icn5mfbylg.execute-api.us-west-2.amazonaws.com/prod';
 
 /* ===================================================
    STATE
 =================================================== */
 const state = {
-  events: [
-    { id:'evt-001', name:'Coldplay World Tour', artist:'Coldplay', location:'Jakarta', venue:'Gelora Bung Karno', date:'2025-08-15', time:'19:00', price:850000, tickets:500, desc:'Konser spektakuler Coldplay dengan teknologi LED terbaru.' },
-    { id:'evt-002', name:'Dewa 19 Reunion', artist:'Dewa 19', location:'Semarang', venue:'Simpang Lima', date:'2025-09-20', time:'20:00', price:350000, tickets:2000, desc:'Reuni legendaris Dewa 19, hadir dengan formasi lengkap.' },
-    { id:'evt-003', name:'Jazz Nusantara Festival', artist:'Various Artists', location:'Bandung', venue:'Sabuga ITB', date:'2025-10-05', time:'16:00', price:150000, tickets:3000, desc:'Festival jazz terbesar di Jawa Barat.' },
-  ],
+  events: [],
   orders: [],
   tickets: [],
   tokens: {},
@@ -30,43 +26,46 @@ const state = {
 };
 
 const lambdaFunctions = [
-  { name:'lks-read-event', handler:'readEvent.handler', trigger:'API Gateway GET /event' },
-  { name:'lks-write-event', handler:'writeEvent.handler', trigger:'API Gateway POST,PUT,DELETE /event' },
-  { name:'lks-read-order', handler:'readOrder.handler', trigger:'API Gateway GET /order' },
-  { name:'lks-queue-order', handler:'queueOrder.handler', trigger:'API Gateway POST /order' },
-  { name:'lks-write-order', handler:'writeOrder.handler', trigger:'SQS lks-queue-order' },
-  { name:'lks-ticket', handler:'ticket.handler', trigger:'API Gateway POST,DELETE /ticket' },
-  { name:'lks-auth', handler:'auth.handler', trigger:'API Gateway Authorizer' },
-  { name:'lks-token', handler:'token.handler', trigger:'API Gateway POST /token' },
-  { name:'lks-payment', handler:'payment.handler', trigger:'SQS lks-queue-payment' },
-  { name:'lks-websocket', handler:'websocket.handler', trigger:'WebSocket API (6 routes)' },
+  { name: 'lks-read-event', handler: 'readEvent.handler', trigger: 'API Gateway GET /event' },
+  { name: 'lks-write-event', handler: 'writeEvent.handler', trigger: 'API Gateway POST,PUT,DELETE /event' },
+  { name: 'lks-read-order', handler: 'readOrder.handler', trigger: 'API Gateway GET /order' },
+  { name: 'lks-queue-order', handler: 'queueOrder.handler', trigger: 'API Gateway POST /order' },
+  { name: 'lks-write-order', handler: 'writeOrder.handler', trigger: 'SQS lks-queue-order' },
+  { name: 'lks-ticket', handler: 'ticket.handler', trigger: 'API Gateway POST,DELETE /ticket' },
+  { name: 'lks-auth', handler: 'auth.handler', trigger: 'API Gateway Authorizer' },
+  { name: 'lks-token', handler: 'token.handler', trigger: 'API Gateway POST /token' },
+  { name: 'lks-payment', handler: 'payment.handler', trigger: 'SQS lks-queue-payment' },
+  { name: 'lks-websocket', handler: 'websocket.handler', trigger: 'WebSocket API (6 routes)' },
 ];
 
-const eventColors = ['#1a1a3e','#1a2a1a','#2a1a1a','#1a2a2a','#2a1a2a'];
-const eventEmojis = ['🎸','🎺','🥁','🎹','🎻','🎤','🎧','🎵'];
+const eventColors = ['#1a1a3e', '#1a2a1a', '#2a1a1a', '#1a2a2a', '#2a1a2a'];
+const eventEmojis = ['🎸', '🎺', '🥁', '🎹', '🎻', '🎤', '🎧', '🎵'];
 
 /* ===================================================
    UTILITIES
 =================================================== */
-function nowTs() { return new Date().toLocaleTimeString('id-ID', {hour12:false}); }
+function nowTs() { return new Date().toLocaleTimeString('id-ID', { hour12: false }); }
 function nowFull() { return new Date().toLocaleString('id-ID'); }
-function uid() { return Math.random().toString(36).substr(2,9).toUpperCase(); }
-function fmtRp(n) { return 'Rp ' + n.toLocaleString('id-ID'); }
-
-function toast(title, msg, type='info') {
-  const icons = { info:'ℹ️', success:'✅', error:'❌', ws:'🔌' };
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.innerHTML = `<div class="toast-icon">${icons[type]||'•'}</div><div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
-  document.getElementById('toast-container').appendChild(el);
-  setTimeout(() => { el.style.animation = 'toast-out 0.3s ease forwards'; setTimeout(()=>el.remove(), 300); }, 3500);
+function uid() { return Math.random().toString(36).substr(2, 9).toUpperCase(); }
+function fmtRp(n) { 
+  if (n === undefined || n === null) return 'Rp 0';
+  return 'Rp ' + Number(n).toLocaleString('id-ID'); 
 }
 
-function addLog(fn, msg, type='ok') {
+function toast(title, msg, type = 'info') {
+  const icons = { info: 'ℹ️', success: '✅', error: '❌', ws: '🔌' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<div class="toast-icon">${icons[type] || '•'}</div><div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => { el.style.animation = 'toast-out 0.3s ease forwards'; setTimeout(() => el.remove(), 300); }, 3500);
+}
+
+function addLog(fn, msg, type = 'ok') {
   const colors = {
-    'lks-read-event':'#6de8fa','lks-write-event':'#e8c96d','lks-queue-order':'#a594ff',
-    'lks-write-order':'#6dfaaa','lks-auth':'#fa6d7c','lks-token':'#faaa6d',
-    'lks-ticket':'#6d9efa','lks-payment':'#fa9d6d','lks-websocket':'#c86dfa','system':'#555'
+    'lks-read-event': '#6de8fa', 'lks-write-event': '#e8c96d', 'lks-queue-order': '#a594ff',
+    'lks-write-order': '#6dfaaa', 'lks-auth': '#fa6d7c', 'lks-token': '#faaa6d',
+    'lks-ticket': '#6d9efa', 'lks-payment': '#fa9d6d', 'lks-websocket': '#c86dfa', 'system': '#555'
   };
   const entry = { fn, msg, type, ts: nowTs(), color: colors[fn] || '#888' };
   state.logs.push(entry);
@@ -98,9 +97,9 @@ function clearAllLogs() { state.logs = []; renderTerminal(); }
    NAVIGATION
 =================================================== */
 const pageTitles = {
-  dashboard:'Dashboard', events:'Events', orders:'Orders', tickets:'Tiket Saya',
-  payment:'Pembayaran', 'auth-page':'Auth & Token', 'sqs-page':'SQS Queue',
-  'websocket-page':'WebSocket API', 'lambda-page':'Lambda Logs', 'arch-page':'Architecture'
+  dashboard: 'Dashboard', events: 'Events', orders: 'Orders', tickets: 'Tiket Saya',
+  payment: 'Pembayaran', 'auth-page': 'Auth & Token', 'sqs-page': 'SQS Queue',
+  'websocket-page': 'WebSocket API', 'lambda-page': 'Lambda Logs', 'arch-page': 'Architecture'
 };
 
 function showPage(name, btn) {
@@ -132,9 +131,36 @@ document.addEventListener('click', e => {
 /* ===================================================
    EVENTS
 =================================================== */
-function renderEvents() {
+async function renderEvents() {
   const grid = document.getElementById('events-grid');
   if (!grid) return;
+
+  // Real API Call
+  if (state.events.length === 0) {
+    try {
+      addLog('lks-read-event', `GET /events → Memanggil API...`, 'info');
+      const res = await fetch(`${API_BASE_URL}/events`);
+      const rawEvents = await res.json();
+      
+      // Mapping nama kolom RDS ke properti Frontend
+      state.events = rawEvents.map(ev => ({
+        id: ev.id,
+        name: ev.name,
+        venue: ev.venue,
+        location: ev.venue, // Karena di DB cuma ada venue
+        date: ev.date ? ev.date.split('T')[0] : '-',
+        time: ev.date ? ev.date.split('T')[1]?.substring(0,5) : '19:00',
+        price: ev.ticket_price || 0,
+        tickets: ev.available_quota || 0,
+        desc: ev.description || '-'
+      }));
+
+      addLog('lks-read-event', `GET /events → Success (${state.events.length} items)`, 'ok');
+    } catch (err) {
+      addLog('lks-read-event', `GET /events → Error: ${err.message}`, 'err');
+    }
+  }
+
   const search = (document.getElementById('event-search')?.value || '').toLowerCase();
   const evs = state.events.filter(e => !search || e.name.toLowerCase().includes(search) || e.location.toLowerCase().includes(search));
 
@@ -142,8 +168,8 @@ function renderEvents() {
 
   grid.innerHTML = evs.map((ev, i) => `
     <div class="event-card">
-      <div class="event-card-hero" style="background:${eventColors[i%eventColors.length]};">
-        <span style="font-size:64px;">${eventEmojis[i%eventEmojis.length]}</span>
+      <div class="event-card-hero" style="background:${eventColors[i % eventColors.length]};">
+        <span style="font-size:64px;">${eventEmojis[i % eventEmojis.length]}</span>
         <div class="ticket-badge">${ev.tickets} tiket tersisa</div>
       </div>
       <div class="event-card-body">
@@ -176,33 +202,44 @@ function renderEvents() {
 
 function submitAddEvent() {
   const name = document.getElementById('ev-name').value.trim();
-  const artist = document.getElementById('ev-artist').value.trim();
-  const loc = document.getElementById('ev-loc').value.trim();
+  const dateStr = document.getElementById('ev-date').value;
+  const timeStr = document.getElementById('ev-time').value;
   const venue = document.getElementById('ev-venue').value.trim();
-  const date = document.getElementById('ev-date').value;
-  const time = document.getElementById('ev-time').value;
   const price = parseInt(document.getElementById('ev-price').value) || 0;
-  const tickets = parseInt(document.getElementById('ev-tickets').value) || 500;
-  const desc = document.getElementById('ev-desc').value.trim();
-  if (!name || !loc || !date || !price) { toast('Validasi Gagal', 'Harap isi semua field wajib!', 'error'); return; }
+  const quota = parseInt(document.getElementById('ev-tickets').value) || 500;
 
-  addLog('lks-write-event', `POST /event — Request received: "${name}"`, 'warn');
-  addLog('lks-auth', `Authorizer OK — userId: ${state.tokens[Object.keys(state.tokens)[0]]?.user || 'anonymous'}`, 'ok');
-  setTimeout(() => {
-    addLog('lks-write-event', `SSM GetParameter: /lks/database/endpoint`, 'dim');
-    setTimeout(() => {
-      addLog('lks-write-event', `SSM GetParameter: /lks/database/dbname, username, password`, 'dim');
-      setTimeout(() => {
-        const ev = { id:'evt-'+uid(), name, artist, location:loc, venue, date, time, price, tickets, desc };
-        state.events.push(ev);
-        updateBadges(); renderDashboard(); renderEvents();
-        closeModal('modal-add-event');
-        addLog('lks-write-event', `RDS: INSERT INTO events VALUES ('${ev.id}','${name}','${loc}',${price}) → 201 Created`, 'ok');
-        toast('Event Ditambahkan!', `"${name}" berhasil disimpan ke RDS.`, 'success');
-        ['ev-name','ev-artist','ev-loc','ev-venue','ev-date','ev-desc'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
-      }, 400);
-    }, 300);
-  }, 200);
+  if (!name || !dateStr || !price) { toast('Validasi Gagal', 'Harap isi semua field wajib!', 'error'); return; }
+
+  const id = 'EVT-' + uid();
+  const date = `${dateStr}T${timeStr}:00Z`;
+
+  addLog('lks-write-event', `POST /events → Menyimpan "${name}" ke Cloud...`, 'warn');
+
+  const token = document.getElementById('val-token').value;
+  const deviceId = document.getElementById('val-device').value;
+
+  fetch(`${API_BASE_URL}/events`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token,
+      'Deviceid': deviceId
+    },
+    body: JSON.stringify({ id, name, date, venue, price, quota })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) throw new Error(data.error);
+      addLog('lks-write-event', `RDS Success: Event "${name}" Saved (201)`, 'ok');
+      toast('Event Tersimpan!', `"${name}" berhasil masuk ke RDS.`, 'success');
+      closeModal('modal-add-event');
+      state.events = []; // Reset agar renderEvents() memicu fetch ulang
+      renderEvents();
+    })
+    .catch(err => {
+      addLog('lks-write-event', `Error: ${err.message}`, 'err');
+      toast('Gagal Simpan', err.message, 'error');
+    });
 }
 
 function deleteEvent(id) {
@@ -249,24 +286,36 @@ function submitOrder() {
   const ev = state.selectedEvent;
   const multiplier = cat === 'vip' ? 1.5 : cat === 'vvip' ? 2 : 1;
   const total = Math.round(ev.price * qty * multiplier);
-  const orderId = 'ORD-' + uid();
 
-  addLog('lks-queue-order', `POST /order — ${name} · ${ev.name} × ${qty} [${cat.toUpperCase()}]`, 'warn');
-  addLog('lks-auth', `lks-auth: token valid → ALLOW · user: ${email}`, 'ok');
+  addLog('lks-queue-order', `POST /order — ${name} · ${ev.name} × ${qty}`, 'warn');
 
-  const msg = { id:orderId, eventId:ev.id, eventName:ev.name, name, email, phone, qty, category:cat, total, status:'queued', ts:nowFull() };
-  setTimeout(() => {
-    addLog('lks-queue-order', `SQS SendMessage: ${orderId} → lks-queue-order FIFO`, 'ok');
-    state.sqsOrder.push(msg);
-    updateBadges(); renderSQS(); renderOrders();
-    closeModal('modal-buy');
-    toast('Order Masuk Queue!', `${orderId} diantrekan di SQS.`, 'success');
-    addLog('lks-queue-order', `Response 202 Accepted: orderId=${orderId}`, 'ok');
-    // Auto broadcast ke websocket
-    if (state.wsConnected) {
-      setTimeout(() => wsReceive('system', `New order queued: ${orderId} (${ev.name} × ${qty})`), 800);
-    }
-  }, 400);
+  // Ambil token dari state
+  const token = document.getElementById('val-token').value;
+  const deviceId = document.getElementById('val-device').value;
+
+  fetch(`${API_BASE_URL}/order`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token,
+      'Deviceid': deviceId
+    },
+    body: JSON.stringify({ eventId: ev.id, eventName: ev.name, name, email, phone, qty, category: cat, total })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) throw new Error(data.error);
+      const orderId = data.orderId;
+      addLog('lks-queue-order', `SQS SendMessage Success: ${orderId}`, 'ok');
+      state.sqsOrder.push({ id: orderId, eventName: ev.name, name, qty, category: cat, total, status: 'queued' });
+      updateBadges(); renderSQS();
+      closeModal('modal-buy');
+      toast('Order Masuk!', `ID: ${orderId} sedang diproses.`, 'success');
+    })
+    .catch(err => {
+      addLog('lks-queue-order', `Error: ${err.message}`, 'err');
+      toast('Gagal Order', err.message, 'error');
+    });
 }
 
 function renderOrders() {
@@ -282,16 +331,16 @@ function renderOrders() {
         <div style="font-size:11px;color:var(--text3);">${o.email}</div>
       </td>
       <td>${o.qty}</td>
-      <td><span class="badge ${o.category==='vvip'?'badge-gold':o.category==='vip'?'badge-accent':'badge-gray'}">${o.category.toUpperCase()}</span></td>
+      <td><span class="badge ${o.category === 'vvip' ? 'badge-gold' : o.category === 'vip' ? 'badge-accent' : 'badge-gray'}">${o.category.toUpperCase()}</span></td>
       <td style="color:var(--gold);font-weight:500;">${fmtRp(o.total)}</td>
       <td><span class="badge badge-green">✓ Selesai</span></td>
       <td><button class="btn btn-xs btn-danger" onclick="cancelOrder('${o.id}')">Batal</button></td>
     </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px;">Belum ada order selesai.</td></tr>';
 
-  const total = state.orders.reduce((s,o) => s+o.total, 0);
-  const inq = document.getElementById('ord-queue'); if(inq) inq.textContent = state.sqsOrder.length;
-  const ot = document.getElementById('ord-total'); if(ot) ot.textContent = state.orders.length;
-  const or = document.getElementById('ord-revenue'); if(or) or.textContent = fmtRp(total);
+  const total = state.orders.reduce((s, o) => s + o.total, 0);
+  const inq = document.getElementById('ord-queue'); if (inq) inq.textContent = state.sqsOrder.length;
+  const ot = document.getElementById('ord-total'); if (ot) ot.textContent = state.orders.length;
+  const or = document.getElementById('ord-revenue'); if (or) or.textContent = fmtRp(total);
 }
 
 function cancelOrder(id) {
@@ -303,10 +352,43 @@ function cancelOrder(id) {
 /* ===================================================
    TICKETS
 =================================================== */
-function renderTickets() {
+async function renderTickets() {
   const c = document.getElementById('tickets-container');
   if (!c) return;
-  addLog('lks-ticket', `GET /ticket → SELECT * FROM tickets WHERE userId=... (${state.tickets.length} rows)`, 'ok');
+
+  const email = state.tokens[Object.keys(state.tokens)[0]]?.user || '';
+  if (!email) {
+    c.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text3);"><div style="font-size:48px;margin-bottom:12px;">👤</div><div>Gak ada data login. Silakan login dulu bradah!</div></div>`;
+    return;
+  }
+
+  const token = document.getElementById('val-token').value;
+  const deviceId = document.getElementById('val-device').value;
+
+  try {
+    addLog('lks-ticket', `GET /ticket?email=${email} → Memanggil API...`, 'info');
+    const res = await fetch(`${API_BASE_URL}/ticket?email=${email}`, {
+      headers: { 'Authorization': token, 'Deviceid': deviceId }
+    });
+    const tickets = await res.json();
+    state.tickets = tickets.map(t => {
+       const rawDate = t.event_date || '';
+       return {
+         id: t.ticket_id || t.id,
+         eventName: t.event_name || 'Event',
+         name: t.user_email || t.email,
+         date: rawDate.includes('T') ? rawDate.split('T')[0] : rawDate,
+         venue: t.venue || '-',
+         category: t.category || 'regular',
+         qty: t.qty || 1,
+         total: 0
+       };
+    });
+    addLog('lks-ticket', `GET /ticket → Success (${state.tickets.length} tickets)`, 'ok');
+  } catch (err) {
+    addLog('lks-ticket', `GET /ticket → Error: ${err.message}`, 'err');
+  }
+
   if (!state.tickets.length) {
     c.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text3);"><div style="font-size:48px;margin-bottom:12px;">🎫</div><div>Belum ada tiket. Beli tiket di halaman Events!</div></div>`;
     return;
@@ -327,8 +409,6 @@ function renderTickets() {
       </div>
       <div class="ticket-right">
         <span class="badge badge-green">✓ Valid</span>
-        <div class="ticket-price">${fmtRp(t.total)}</div>
-        <button class="btn btn-xs btn-danger" onclick="deleteTicket('${t.id}')">Hapus</button>
       </div>
     </div>`).join('');
 }
@@ -349,13 +429,13 @@ function renderSQS() {
   if (orderBox) {
     orderBox.innerHTML = state.sqsOrder.length
       ? state.sqsOrder.map(m => `
-        <div class="queue-msg ${m.status==='processing'?'processing':''}">
+        <div class="queue-msg ${m.status === 'processing' ? 'processing' : ''}">
           <div>
             <span style="font-family:monospace;font-size:11px;color:var(--text3);">${m.id}</span>
             <div style="font-size:13px;margin-top:2px;">${m.name} · ${m.eventName} × ${m.qty} [${m.category.toUpperCase()}] · ${fmtRp(m.total)}</div>
           </div>
           <div style="display:flex;gap:6px;align-items:center;">
-            <span class="badge ${m.status==='processing'?'badge-gold':'badge-accent'}">${m.status}</span>
+            <span class="badge ${m.status === 'processing' ? 'badge-gold' : 'badge-accent'}">${m.status}</span>
             <button class="btn btn-xs btn-danger" onclick="failMsg('${m.id}')">Fail</button>
           </div>
         </div>`)
@@ -376,10 +456,10 @@ function renderSQS() {
       : '<div style="font-size:13px;color:var(--text3);text-align:center;padding:16px;">Queue kosong</div>';
   }
 
-  const qc = document.getElementById('qs-count'); if(qc) qc.textContent = state.sqsOrder.length + ' msg';
-  const qp = document.getElementById('qs-pay-count'); if(qp) qp.textContent = state.sqsPayment.length + ' msg';
-  const sc = document.getElementById('sqs-order-cnt'); if(sc) sc.textContent = state.sqsOrder.length + ' pesan';
-  const sp = document.getElementById('sqs-pay-cnt'); if(sp) sp.textContent = state.sqsPayment.length + ' pesan';
+  const qc = document.getElementById('qs-count'); if (qc) qc.textContent = state.sqsOrder.length + ' msg';
+  const qp = document.getElementById('qs-pay-count'); if (qp) qp.textContent = state.sqsPayment.length + ' msg';
+  const sc = document.getElementById('sqs-order-cnt'); if (sc) sc.textContent = state.sqsOrder.length + ' pesan';
+  const sp = document.getElementById('sqs-pay-cnt'); if (sp) sp.textContent = state.sqsPayment.length + ' pesan';
 
   const dlqOrder = document.getElementById('dlq-order-msgs');
   if (dlqOrder) dlqOrder.innerHTML = state.dlqOrder.map(m => `
@@ -388,8 +468,8 @@ function renderSQS() {
   if (dlqPay) dlqPay.innerHTML = state.dlqPayment.map(m => `
     <div class="queue-msg failed"><div style="font-size:12px;">${m.id} — ${m.reason}</div><span class="badge badge-red">DLQ</span></div>`).join('');
 
-  const doc = document.getElementById('dlq-order-cnt'); if(doc) doc.textContent = state.dlqOrder.length;
-  const dpc = document.getElementById('dlq-pay-cnt'); if(dpc) dpc.textContent = state.dlqPayment.length;
+  const doc = document.getElementById('dlq-order-cnt'); if (doc) doc.textContent = state.dlqOrder.length;
+  const dpc = document.getElementById('dlq-pay-cnt'); if (dpc) dpc.textContent = state.dlqPayment.length;
 }
 
 function processNextOrder() {
@@ -407,7 +487,7 @@ function processNextOrder() {
         state.sqsOrder.shift();
         state.orders.push(msg);
         // Create ticket
-        const ticket = { id:'TIX-'+uid(), orderId:msg.id, eventName:msg.eventName, name:msg.name, date: state.events.find(e=>e.id===msg.eventId)?.date||'-', venue: state.events.find(e=>e.id===msg.eventId)?.venue||'-', category:msg.category, qty:msg.qty, total:msg.total };
+        const ticket = { id: 'TIX-' + uid(), orderId: msg.id, eventName: msg.eventName, name: msg.name, date: state.events.find(e => e.id === msg.eventId)?.date || '-', venue: state.events.find(e => e.id === msg.eventId)?.venue || '-', category: msg.category, qty: msg.qty, total: msg.total };
         state.tickets.push(ticket);
         addLog('lks-write-order', `SQS DeleteMessage: ${msg.id} → order & ticket saved`, 'ok');
         addLog('lks-ticket', `POST /ticket → INSERT INTO tickets (${ticket.id}) → 201`, 'ok');
@@ -450,7 +530,7 @@ function simulateS3Upload() {
   const msgId = 'PAY-' + uid();
   addLog('lks-payment', `S3 PutObject: lks-app/proofOfPayment/${filename}`, 'warn');
   setTimeout(() => {
-    state.sqsPayment.push({ id:msgId, filename, status:'queued' });
+    state.sqsPayment.push({ id: msgId, filename, status: 'queued' });
     addLog('lks-payment', `S3 notification → SQS SendMessage: ${msgId} → lks-queue-payment`, 'ok');
     renderSQS();
     setTimeout(() => {
@@ -467,9 +547,9 @@ function simulateS3Upload() {
 }
 
 function simulateDLQ(type) {
-  const id = (type==='order'?'ORD':'PAY') + '-FAIL-' + uid();
+  const id = (type === 'order' ? 'ORD' : 'PAY') + '-FAIL-' + uid();
   const reason = 'RDS connection timeout after 3 retries';
-  if (type==='order') state.dlqOrder.push({ id, reason });
+  if (type === 'order') state.dlqOrder.push({ id, reason });
   else state.dlqPayment.push({ id, reason });
   addLog('lks-write-order', `Message ${id} → DLQ: ${reason}`, 'err');
   renderSQS();
@@ -480,30 +560,41 @@ function simulateDLQ(type) {
    AUTH & TOKEN
 =================================================== */
 function generateToken() {
-  const user = document.getElementById('auth-user').value.trim() || 'user@soundwave.id';
-  const device = document.getElementById('auth-device').value.trim() || 'device-001';
+  const username = document.getElementById('auth-user').value.trim() || 'lks';
+  const password = 'juara1'; // Sesuai hardcode di token.js kita
+  const deviceId = document.getElementById('auth-device').value.trim() || 'device-001';
 
-  addLog('lks-token', `POST /token — AWS IAM Signature OK · user: ${user} · device: ${device}`, 'warn');
-  setTimeout(() => {
-    const token = 'lks.' + btoa(user + ':' + device + ':' + Date.now()).replace(/=/g,'').substring(0,40);
-    state.tokens[token] = { user, device, created: nowFull() };
-    addLog('lks-token', `DynamoDB PutItem: tokens pk="${token.substring(0,24)}..." sk="${device}"`, 'ok');
-    setTimeout(() => {
-      document.getElementById('token-val').textContent = token + '\n\nHeader Example:\nAuthorization: Bearer ' + token + '\nDeviceid: ' + device;
-      document.getElementById('token-result').style.display = 'block';
-      document.getElementById('val-token').value = token;
-      document.getElementById('val-device').value = device;
+  addLog('lks-token', `POST /login — Memproses auth untuk ${username}...`, 'warn');
 
-      // Update auth bar
-      const bar = document.getElementById('auth-status-bar');
-      bar.className = 'auth-status authed';
-      bar.innerHTML = `<span>●</span> ${user}`;
+  fetch(`${API_BASE_URL}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, deviceId })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.token) {
+        const token = data.token;
+        state.tokens[token] = { user: username, device: deviceId, created: nowFull() };
+        document.getElementById('token-val').textContent = token + '\n\nHeader Example:\nAuthorization: ' + token + '\nDeviceid: ' + deviceId;
+        document.getElementById('token-result').style.display = 'block';
+        document.getElementById('val-token').value = token;
+        document.getElementById('val-device').value = deviceId;
 
-      addLog('lks-token', `Response 200: token generated`, 'ok');
-      toast('Token Dibuat!', `Token berhasil disimpan ke DynamoDB.`, 'success');
-      renderDynamoTable();
-    }, 300);
-  }, 600);
+        const bar = document.getElementById('auth-status-bar');
+        bar.className = 'auth-status authed';
+        bar.innerHTML = `<span>●</span> ${username}`;
+
+        addLog('lks-token', `Login Berhasil! Token disimpan ke DynamoDB`, 'ok');
+        toast('Login Sukses', 'Token berhasil di-generate.', 'success');
+      } else {
+        throw new Error(data.message || 'Login Gagal');
+      }
+    })
+    .catch(err => {
+      addLog('lks-token', `Error: ${err.message}`, 'err');
+      toast('Login Gagal', err.message, 'error');
+    });
 }
 
 function validateToken() {
@@ -514,7 +605,7 @@ function validateToken() {
 
   addLog('lks-auth', `Authorizer invoked: Authorization header received · deviceid: ${device}`, 'info');
   setTimeout(() => {
-    addLog('lks-auth', `DynamoDB GetItem: tokens pk="${token.substring(0,24)}..." sk="${device}"`, 'dim');
+    addLog('lks-auth', `DynamoDB GetItem: tokens pk="${token.substring(0, 24)}..." sk="${device}"`, 'dim');
     setTimeout(() => {
       const valid = !!state.tokens[token] && (!device || state.tokens[token].device === device);
       if (valid) {
@@ -538,7 +629,7 @@ function renderDynamoTable() {
   t.innerHTML = `<div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Data di DynamoDB (${tokens.length} items)</div>` +
     tokens.map(([tok, d]) => `
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;margin-bottom:6px;font-size:11px;">
-        <div style="font-family:monospace;color:var(--accent2);word-break:break-all;">${tok.substring(0,36)}...</div>
+        <div style="font-family:monospace;color:var(--accent2);word-break:break-all;">${tok.substring(0, 36)}...</div>
         <div style="color:var(--text3);margin-top:4px;">user: ${d.user} · device: ${d.device}</div>
       </div>`).join('');
 }
@@ -573,19 +664,19 @@ function simulateUpload() {
   const iv = setInterval(() => {
     pct += Math.random() * 25;
     if (pct > 100) pct = 100;
-    const pb = document.getElementById('pb-'+payId);
+    const pb = document.getElementById('pb-' + payId);
     if (pb) pb.style.width = pct + '%';
     if (pct >= 100) {
       clearInterval(iv);
-      const ps = document.getElementById('ps-'+payId);
+      const ps = document.getElementById('ps-' + payId);
       if (ps) { ps.className = 'badge badge-green'; ps.textContent = '✓ Uploaded'; }
       const sub = item.querySelector('.payment-sub');
       if (sub) sub.textContent = `S3: lks-YourName-YourProvince/proofOfPayment/${filename}`;
       addLog('lks-payment', `S3 Upload OK: proofOfPayment/${filename} → SQS notification`, 'ok');
 
       // Trigger SQS
-      state.sqsPayment.push({ id:payId, filename, status:'queued' });
-      state.payments.push({ id:payId, filename });
+      state.sqsPayment.push({ id: payId, filename, status: 'queued' });
+      state.payments.push({ id: payId, filename });
       renderSQS(); renderPaymentQueue();
       addLog('lks-payment', `SQS SendMessage: ${payId} → lks-queue-payment`, 'ok');
       toast('Upload Berhasil!', `${filename} → S3 → SQS`, 'success');
@@ -620,16 +711,16 @@ function renderPaymentQueue() {
 /* ===================================================
    WEBSOCKET SIMULATOR
 =================================================== */
-function wsAddMessage(type, content, meta='') {
+function wsAddMessage(type, content, meta = '') {
   const container = document.getElementById('ws-messages');
   if (!container) return;
   const div = document.createElement('div');
   div.className = `ws-msg ${type}`;
   const ts = nowTs();
   if (type === 'sent') {
-    div.innerHTML = `<div style="flex:1;display:flex;flex-direction:column;align-items:flex-end;"><div class="ws-msg-bubble">${content}</div><div class="ws-msg-meta">${meta||'Sent'} · ${ts}</div></div>`;
+    div.innerHTML = `<div style="flex:1;display:flex;flex-direction:column;align-items:flex-end;"><div class="ws-msg-bubble">${content}</div><div class="ws-msg-meta">${meta || 'Sent'} · ${ts}</div></div>`;
   } else {
-    div.innerHTML = `<div><div class="ws-msg-bubble">${content}</div><div class="ws-msg-meta">${meta||'Server'} · ${ts}</div></div>`;
+    div.innerHTML = `<div><div class="ws-msg-bubble">${content}</div><div class="ws-msg-meta">${meta || 'Server'} · ${ts}</div></div>`;
   }
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
@@ -723,7 +814,7 @@ function wsSendText() {
   const text = input.value.trim();
   if (!text) return;
   wsAddMessage('sent', text, 'Client');
-  addLog('lks-websocket', `sendMessage: "${text.substring(0,40)}"`, 'info');
+  addLog('lks-websocket', `sendMessage: "${text.substring(0, 40)}"`, 'info');
   input.value = '';
   setTimeout(() => wsReceive('received', `Echo: ${text}`, 'lks-websocket'), 300);
 }
@@ -736,7 +827,7 @@ function wsSendCustom() {
     wsAddMessage('sent', raw, 'Client (custom)');
     addLog('lks-websocket', `Custom message: action=${parsed.action}`, 'info');
     setTimeout(() => wsReceive('received', `Processed action: ${parsed.action}`, 'Server'), 300);
-  } catch(e) {
+  } catch (e) {
     toast('JSON Invalid', 'Format pesan harus JSON valid!', 'error');
   }
 }
@@ -774,9 +865,9 @@ function renderDashboard() {
 
   const el = document.getElementById('dash-event-list');
   if (el) {
-    el.innerHTML = state.events.slice(0,3).map((ev, i) => `
+    el.innerHTML = state.events.slice(0, 3).map((ev, i) => `
       <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;">
-        <div style="font-size:28px;">${eventEmojis[i%eventEmojis.length]}</div>
+        <div style="font-size:28px;">${eventEmojis[i % eventEmojis.length]}</div>
         <div style="flex:1;">
           <div style="font-weight:600;font-size:14px;">${ev.name}</div>
           <div style="font-size:12px;color:var(--text2);">${ev.location} · ${ev.date}</div>
@@ -790,18 +881,18 @@ function renderDashboard() {
 
   const awsEl = document.getElementById('aws-status-list');
   const services = [
-    { name:'VPC (us-west-2)', status:'running', detail:'15.32.0.0/16' },
-    { name:'API Gateway REST', status:'running', detail:'production stage' },
-    { name:'API Gateway WS', status: state.wsConnected ? 'running' : 'idle', detail:'prod stage · 6 routes' },
-    { name:'RDS PostgreSQL', status:'running', detail:'Multi-AZ · Private' },
-    { name:'DynamoDB tokens', status:'running', detail:`${Object.keys(state.tokens).length} items` },
-    { name:'SQS Queue Order', status: state.sqsOrder.length > 0 ? 'busy' : 'idle', detail:`${state.sqsOrder.length} messages` },
-    { name:'SQS Queue Payment', status: state.sqsPayment.length > 0 ? 'busy' : 'idle', detail:`${state.sqsPayment.length} messages` },
-    { name:'Lambda Functions', status:'running', detail:'10 functions · NodeJS 16' },
+    { name: 'VPC (us-west-2)', status: 'running', detail: '15.32.0.0/16' },
+    { name: 'API Gateway REST', status: 'running', detail: 'production stage' },
+    { name: 'API Gateway WS', status: state.wsConnected ? 'running' : 'idle', detail: 'prod stage · 6 routes' },
+    { name: 'RDS PostgreSQL', status: 'running', detail: 'Multi-AZ · Private' },
+    { name: 'DynamoDB tokens', status: 'running', detail: `${Object.keys(state.tokens).length} items` },
+    { name: 'SQS Queue Order', status: state.sqsOrder.length > 0 ? 'busy' : 'idle', detail: `${state.sqsOrder.length} messages` },
+    { name: 'SQS Queue Payment', status: state.sqsPayment.length > 0 ? 'busy' : 'idle', detail: `${state.sqsPayment.length} messages` },
+    { name: 'Lambda Functions', status: 'running', detail: '10 functions · NodeJS 16' },
   ];
   if (awsEl) awsEl.innerHTML = services.map(s => `
     <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);">
-      <div style="width:8px;height:8px;border-radius:50%;background:${s.status==='running'?'var(--green)':s.status==='busy'?'var(--gold)':'var(--text3)'};flex-shrink:0;${s.status==='running'?'box-shadow:0 0 6px var(--green)':''}"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:${s.status === 'running' ? 'var(--green)' : s.status === 'busy' ? 'var(--gold)' : 'var(--text3)'};flex-shrink:0;${s.status === 'running' ? 'box-shadow:0 0 6px var(--green)' : ''}"></div>
       <div style="flex:1;font-size:13px;">${s.name}</div>
       <div style="font-size:11px;color:var(--text3);">${s.detail}</div>
     </div>`).join('');

@@ -15,6 +15,7 @@ module.exports.handler = async (event) => {
       if (!username || !password || !deviceId) {
          return {
             statusCode: 400,
+            headers: { "Access-Control-Allow-Origin": "*" },
             body: JSON.stringify({ message: "Username, password, and deviceId are required!" })
          };
       }
@@ -22,6 +23,7 @@ module.exports.handler = async (event) => {
       if (username !== "lks" || password !== "juara1") {
          return {
             statusCode: 401,
+            headers: { "Access-Control-Allow-Origin": "*" },
             body: JSON.stringify({ message: "Invalid username or password" })
          };
       }
@@ -59,6 +61,7 @@ module.exports.handler = async (event) => {
       console.error("Kesalahan System Login:", error);
       return {
          statusCode: 500,
+         headers: { "Access-Control-Allow-Origin": "*" },
          body: JSON.stringify({ message: "Internal Server Error", error: error.message })
       };
    }
