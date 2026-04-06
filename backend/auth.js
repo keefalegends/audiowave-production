@@ -33,15 +33,16 @@ const generatePolicy = (id, permission, resource) => {
 
 module.exports.handler = async (event, context, callback) => {
    try {
-      const token = event.headers.Authorization;
-      const deviceId = event.headers.Deviceid || event.headers.deviceid;
+      // Mengambil headers, menghindari error jika undefined
+      const headers = event.headers || {};
+      const token = headers.Authorization || headers.authorization || "";
+      const deviceId = headers.Deviceid || headers.deviceid || headers.deviceId || "";
       const resource = event.methodArn;
 
       const params = {
          TableName,
          Key: marshall({
-            token,
-            deviceId,
+            token
          }),
       };
 
@@ -53,10 +54,10 @@ module.exports.handler = async (event, context, callback) => {
          const currentDate = moment();
          const hasPassed = moment(currentDate).isBefore(validToken.expiredDate);
 
-         if (hasPassed) {
+         if (hasPassed && validToken.deviceId === deviceId) {
             return generatePolicy("authId", "Allow", resource);
          } else {
-            console.error("Token expired!");
+            console.error("Token expired or Device ID mismatch!");
             return generatePolicy("authId", "Deny", resource);
          }
       } else {
