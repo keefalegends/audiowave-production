@@ -1,11 +1,11 @@
-const { DynamoDBClient, PutItemCommand } = require("/opt/node_modules/@aws-sdk/client-dynamodb");
-const { marshall } = require("/opt/node_modules/@aws-sdk/util-dynamodb");
-const moment = require("/opt/node_modules/moment");
-const crypto = require("crypto"); 
+const { DynamoDBClient, PutItemCommand } = require("./node_modules/@aws-sdk/client-dynamodb");
+const { marshall } = require("./node_modules/@aws-sdk/util-dynamodb");
+const moment = require("./node_modules/moment");
+const crypto = require("crypto");
 
 const config = { region: "us-west-2" };
 const client = new DynamoDBClient(config);
-const TableName = "tokens"; 
+const TableName = "tokens";
 
 module.exports.handler = async (event) => {
    try {
@@ -27,13 +27,13 @@ module.exports.handler = async (event) => {
       }
 
       const token = crypto.randomBytes(32).toString("hex");
-      const expiredDate = moment().add(3, 'hours').toISOString(); 
+      const expiredDate = moment().add(3, 'hours').toISOString();
 
       const params = {
          TableName,
          Item: marshall({
             token: token,
-            deviceId: deviceId, 
+            deviceId: deviceId,
             expiredDate: expiredDate,
             username: username
          }),
@@ -45,7 +45,7 @@ module.exports.handler = async (event) => {
          statusCode: 200,
          headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*" 
+            "Access-Control-Allow-Origin": "*"
          },
          body: JSON.stringify({
             message: "Login successful",

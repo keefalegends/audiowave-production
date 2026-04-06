@@ -1,12 +1,12 @@
 const {
    GetItemCommand,
    DynamoDBClient,
-} = require("/opt/node_modules/@aws-sdk/client-dynamodb");
+} = require("./node_modules/@aws-sdk/client-dynamodb");
 const {
    marshall,
    unmarshall,
-} = require("/opt/node_modules/@aws-sdk/util-dynamodb");
-const moment = require("/opt/node_modules/moment");
+} = require("./node_modules/@aws-sdk/util-dynamodb");
+const moment = require("./node_modules/moment");
 
 const config = { region: "us-west-2" };
 const client = new DynamoDBClient(config);
