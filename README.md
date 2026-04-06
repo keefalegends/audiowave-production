@@ -3,83 +3,113 @@
 ![Serverless Architecture](https://img.shields.io/badge/Architecture-Serverless-FF9900?style=for-the-badge&logo=amazonaws)
 ![NodeJS](https://img.shields.io/badge/Node.js-16.x-339933?style=for-the-badge&logo=nodedotjs)
 ![AWS Lambda](https://img.shields.io/badge/AWS-Lambda-FF9900?style=for-the-badge&logo=aws-lambda)
-![API Gateway](https://img.shields.io/badge/Amazon-API%20Gateway-FF4F8B?style=for-the-badge&logo=amazon-api-gateway)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-4169E1?style=for-the-badge&logo=postgresql)
 
-Selamat datang di repositori pemesanan tiket **Sound Wave Production**. Proyek ini merupakan platform tiket yang tahan banting ketika terjadi puncak trafik tak terduga (*war ticket*) berkat penerapan prinsip **Decoupled Serverless Architecture**. 
-
----
-
-## 🏛 Arsitektur Sistem
-
-Aplikasi ini dibagi secara ketat menjadi dua komponen utama:
-
-### 1. Frontend (Statik & Responsif)
-Folder `frontend/` berisi murni kode UI web client.
-- **Teknologi**: Frontend dirancang untuk dideploy ke **AWS Amplify** atau layanan hosting statis S3.
-- **Peran**: Menyajikan tatap muka dinamis untuk pelanggan tanpa membebani sisi komputasi backend. Berkomunikasi dengan *API Gateway Endpoint* (REST dan WebSocket).
-
-### 2. Backend (Event-Driven Cloud)
-Sisi server-side dirancang menggunakan ekosistem *Cloud Native* AWS.
-- **API Gateway (REST & WebSocket)**: Menjadi pintu gerbang routing trafik pengguna menuju sumber komputasi.
-- **AWS Lambda**: *Function as a Service* (FaaS) Node.js (v16.x) yang berjalan hanya saat dibutuhkan (terhubung melalui *monorepo* `backend/`).
-- **Amazon SQS (FIFO)**: Mengantre orderan tiket pelanggan secara *First-In-First-Out* (sehingga mencegah duplikasi tiket & memastikan yang klik duluan dapat tiket duluan).
-- **Amazon DynamoDB**: Database *NoSQL* *ultra-fast* yang menyimpan token login admin dan ID koneksi WebSocket dengan dukungan konfigurasi RCU/WCU *Auto Scaling*.
-- **PostgreSQL RDS**: Database Relasional terpisah untuk menampung riwayat transaksi dan stok tiket. Dilindungi oleh konfigurasi Private Subnet VPC & kredensialnya tersimpan di **SSM Parameter Store**.
-- **S3 Bucket Lifecycle**: Menyimpan bukti pembayaran pelanggan dengan konfigurasi otomatis berpindah ke arsip *Glacier Deep Archive* setelah 6 bulan.
+Sound Wave Production adalah platform pemesanan tiket konser berbasis **Serverless Architecture** di AWS. Sistem ini dirancang untuk menangani trafik tinggi (*war ticket*) menggunakan pola asinkronus dengan SQS FIFO dan database relasional RDS PostgreSQL.
 
 ---
 
-## 📂 Struktur Repositori
+## 🏛️ Arsitektur Sistem
+
+```mermaid
+graph TD
+    A[Vue.js Frontend] -->|REST API| B[API Gateway]
+    B -->|Auth| C[Lambda Auth]
+    C -->|Query| D[(DynamoDB Tokens)]
+    B -->|POST /order| E[Lambda QueueOrder]
+    E -->|Push| F[SQS FIFO Queue]
+    F -->|Trigger| G[Lambda WriteOrder]
+    G -->|Insert| H[(RDS PostgreSQL)]
+    B -->|GET /events| I[Lambda ReadEvent]
+    I -->|Query| H
+```
+
+### Komponen Utama:
+- **Frontend**: Single Page Application (SPA) dengan UI premium, dark mode, dan animasi terintegrasi.
+- **API Gateway**: Entry point utama dengan **Custom Lambda Authorizer**.
+- **AWS Lambda**: Logika bisnis (Read/Write Event, Queueing, Auth, Token).
+- **Amazon SQS FIFO**: Menjamin urutan pemesanan tiket (*First-Come, First-Served*) dan mencegah duplikasi data.
+- **RDS PostgreSQL**: Database utama untuk menyimpan data Event, Order, dan Tiket.
+- **DynamoDB**: Penyimpanan token sesi yang cepat dan efisien.
+
+---
+
+## 📂 Struktur Folder
 
 ```text
 ├── frontend/             # Root aplikasi UI
 │   ├── index.html        # Kerangka web
-│   ├── style.css         # Styling aesthetic global
-│   └── app.js            # Interaktivitas DOM & State
+│   ├── style.css         # Modern Aesthetic CSS
+│   └── app.js            # API Integration & State Management
 │
-├── backend/              # Node.js Lambda Functions (Monorepo)
-│   ├── package.json      # Shared dependencies (Postgres, AWS SDK)
-│   ├── token.js          # Generator Token + DynamoDB Put
-│   ├── auth.js           # IAM Custom Authorizer
-│   ├── queueOrder.js     # Menambahkan order ke SQS FIFO
-│   ├── writeOrder.js     # Worker SQS -> Insert ke RDS
-│   ├── readEvent.js      # Fetch data Event dari RDS
-│   ├── websocket/        # Route logic untuk WebSocket API
-│   │   └── index.js      
-│   └── ... 
+├── backend/              # Node.js Lambda Functions
+│   ├── auth.js           # Lambda Authorizer (Header validation)
+│   ├── token.js          # Login & Token Generator (DyanmoDB)
+│   ├── readEvent.js      # Fetch events dari RDS
+│   ├── writeEvent.js     # Admin: Create event ke RDS
+│   ├── queueOrder.js     # Producer: Kirim order ke SQS
+│   ├── writeOrder.js     # Consumer: SQS trigger -> DB Transaction
+│   └── ticket.js         # Fetch user tickets (Join Query)
 ```
 
 ---
 
-## 🚀 Panduan Deployment Manual
+## ⚙️ Setup & Konfigurasi
 
-Jika Anda menggunakan repositori ini sebagai arena berlatih AWS Cloud, ikuti langkah-langkah di bawah ini:
+### 1. Database Schema (PostgreSQL)
+Jalankan perintah ini di database RDS Anda:
 
-### Persiapan Dependensi
-Masuk ke terminal di folder backend dan instal requirement yang dibutuhkan:
-```bash
-cd backend
-npm install
+```sql
+CREATE TABLE events (
+    id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    date TIMESTAMP NOT NULL,
+    venue VARCHAR(100),
+    ticket_price NUMERIC(12,2),
+    total_quota INTEGER,
+    available_quota INTEGER
+);
+
+CREATE TABLE orders (
+    id VARCHAR(50) PRIMARY KEY,
+    event_id VARCHAR(50) REFERENCES events(id),
+    name VARCHAR(100),
+    email VARCHAR(100),
+    phone VARCHAR(20),
+    qty INTEGER,
+    category VARCHAR(20),
+    total NUMERIC(12,2),
+    status VARCHAR(20) DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE tickets (
+    id VARCHAR(50) PRIMARY KEY,
+    order_id VARCHAR(50) REFERENCES orders(id),
+    user_email VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
-### Membuat Endpoint Lambda
-Karena arsitektur Lambda dirancang sebagai *Monorepo*, lakukan pengemasan (Zipping) seluruh isi dari folder `backend/`:
-1. Zip file (masukkan file `package.json`, `node_modules`, dan semua file `*.js`).
-2. Masukkan Zip tersebut pada fungsi Lambda yang dibuat di US-West-2 / AWS Console.
-3. Alihkan **Handler Name** sesuai dengan fitur yang dituju di Console AWS (Contoh: ketik `auth.handler` jika men-deploy fungsi Authorizer, ketik `queueOrder.handler` untuk fungsi terima order).
+### 2. Environment Variables (Lambda)
+Pastikan setiap fungsi Lambda memiliki variabel lingkungan berikut:
+- `DB_HOST`: Endpoint RDS
+- `DB_NAME`: Nama database
+- `DB_USER`: Username database
+- `DB_PASS`: Password database
+- `SQS_QUEUE_URL`: URL Antrean SQS FIFO (khusus fungsi `queueOrder`)
 
-### Koneksi Frontend 
-1. Jalankan API Gateway Anda dan kumpulkan *Invoke URL* nya.
-2. Edit baris pertama pada `frontend/app.js`:
-   ```javascript
-   const API_BASE_URL = "https://[YOUR_API_ID].execute-api.us-west-2.amazonaws.com/prod";
-   ```
-3. Hilangkan semua logika simulasi (seperti `setTimeout`) di `app.js` dan ganti menjadi standard `fetch()` Request. 
+### 3. Koneksi Frontend
+Buka [frontend/app.js](frontend/app.js) dan update konstanta di baris paling atas:
+```javascript
+const API_BASE_URL = 'https://your-api-id.execute-api.us-west-2.amazonaws.com/prod';
+```
 
 ---
 
-## 🛡 Keamanan
-
-Keseluruhan kredensial tidak boleh ada yang ditulis *hardcoded*. Baca parameter SSM menggunakan library SDK AWS dan berikan role akses menggunakan IAM (IAM Execution Role `LabRole`). Layanan backend tidak boleh memiliki port publik yang terekspos.
+## 🛡️ Keamanan & Performa
+- **Lambda Authorizer**: Memvalidasi token di setiap request sensitif menggunakan DynamoDB.
+- **VPC Integration**: Lambda dan RDS berada dalam jaringan privat untuk keamanan maksimal.
+- **Deduplication**: SQS FIFO menggunakan `MessageDeduplicationId` untuk memastikan tidak ada order ganda.
 
 > *"May the cloud be with you."* — Sound Wave Engineers 🎸
