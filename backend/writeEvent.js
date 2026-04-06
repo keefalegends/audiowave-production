@@ -1,30 +1,19 @@
-const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
 const { Client } = require("pg");
 
-const ssm = new SSMClient({ region: "us-west-2" });
 let dbClient = null;
 
-async function getDbConfig() {
-    const keys = ["endpoint", "dbname", "username", "password"];
-    const config = {};
-    for (const key of keys) {
-        const cmd = new GetParameterCommand({ Name: `/lks/database/${key}`, WithDecryption: key === 'password' });
-        const res = await ssm.send(cmd);
-        config[key] = res.Parameter.Value;
-    }
-    return config;
-}
+exports.handler = async (event, context) => {
+    // FIX PROSES: Menghindari timeout di VPC
+    context.callbackWaitsForEmptyEventLoop = false;
 
-exports.handler = async (event) => {
     console.log("WriteEvent Input:", event);
     try {
         if (!dbClient) {
-            const config = await getDbConfig();
             dbClient = new Client({
-                host: config.endpoint,
-                database: config.dbname,
-                user: config.username,
-                password: config.password,
+                host: process.env.DB_HOST,
+                database: process.env.DB_NAME,
+                user: process.env.DB_USER,
+                password: process.env.DB_PASS,
                 port: 5432,
                 ssl: { rejectUnauthorized: false }
             });

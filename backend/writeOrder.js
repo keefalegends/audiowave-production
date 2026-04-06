@@ -1,33 +1,17 @@
-const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
-// Package "pg" perlu Anda install nanti (npm install pg) saat menyiapkan zip lks-write-order
 const { Client } = require("pg"); 
 
-const ssm = new SSMClient({ region: "us-west-2" });
-
-// Cache koneksi DB agar tidak perlu connect ulang tiap eksekusi Lambda jika kontainer masih hangat (warm)
 let dbClient = null;
 
-async function getDbConfig() {
-    // Di dunia nyata direkomendasikan menggunakan GetParameters / SecretsManager untuk keamanan
-    const keys = ["endpoint", "dbname", "username", "password"];
-    const config = {};
-    for (const key of keys) {
-        const cmd = new GetParameterCommand({ Name: `/lks/database/${key}`, WithDecryption: key === 'password' });
-        const res = await ssm.send(cmd);
-        config[key] = res.Parameter.Value;
-    }
-    return config;
-}
+exports.handler = async (event, context) => {
+    // FIX PROSES: Menghindari timeout di VPC
+    context.callbackWaitsForEmptyEventLoop = false;
 
-exports.handler = async (event) => {
-    // Event ini berasal dari trigger SQS, BUKAN dari web API (body bentuknya berbeda)
     if (!dbClient) {
-        const config = await getDbConfig();
         dbClient = new Client({
-            host: config.endpoint,
-            database: config.dbname,
-            user: config.username,
-            password: config.password,
+            host: process.env.DB_HOST,
+            database: process.env.DB_NAME,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASS,
             port: 5432,
             ssl: { rejectUnauthorized: false }
         });
