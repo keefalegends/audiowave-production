@@ -1,10 +1,11 @@
 const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
 
 const sqsClient = new SQSClient({ region: "us-west-2" });
-// [TODO] Ganti dengan URL SQS lks-queue-order Anda setelah dibuat di AWS
-const SQS_QUEUE_URL = "https://sqs.us-west-2.amazonaws.com/123456789012/lks-queue-order.fifo";
+const SQS_QUEUE_URL = process.env.SQS_QUEUE_URL;
 
-exports.handler = async (event) => {
+exports.handler = async (event, context) => {
+    // FIX PROSES: Menghindari timeout
+    if (context) context.callbackWaitsForEmptyEventLoop = false;
     try {
         const body = JSON.parse(event.body);
         const orderId = 'ORD-' + Math.random().toString(36).substr(2,9).toUpperCase();
