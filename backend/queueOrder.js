@@ -7,7 +7,7 @@ exports.handler = async (event, context) => {
     // FIX PROSES: Menghindari timeout
     if (context) context.callbackWaitsForEmptyEventLoop = false;
     try {
-        const body = JSON.parse(event.body);
+        const body = JSON.parse(event.body || "{}");
         const orderId = 'ORD-' + Math.random().toString(36).substr(2,9).toUpperCase();
         
         // Membentuk payload untuk antrian
@@ -21,6 +21,7 @@ exports.handler = async (event, context) => {
             qty: body.qty,
             category: body.category,
             total: body.total,
+            connectionId: body.connectionId, // Tambahan untuk notifikasi real-time
             ts: new Date().toISOString()
         };
 

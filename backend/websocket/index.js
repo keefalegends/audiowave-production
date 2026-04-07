@@ -5,17 +5,17 @@ const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require("@aws
 const dbClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: "us-west-2" }));
 
 exports.handler = async (event) => {
-    // Context berisi info tentang rute websocket yg dipanggil
     const connectionId = event.requestContext.connectionId;
     const routeKey = event.requestContext.routeKey;
+    const domainName = event.requestContext.domainName;
+    const stage = event.requestContext.stage;
     
-    // Sesuaikan dengan domain URL API WebSocket Anda
-    const endpoint = event.requestContext.domainName + '/' + event.requestContext.stage;
-    const apiGwClient = new ApiGatewayManagementApiClient({ endpoint: 'https://' + endpoint });
+    // Alamat endpoint untuk kirim balik pesan
+    const callbackUrl = `https://${domainName}/${stage}`;
+    const apiGwClient = new ApiGatewayManagementApiClient({ endpoint: callbackUrl });
 
     try {
         if (routeKey === "$connect") {
-            // Simpan connection ID saat user connect
             await dbClient.send(new PutCommand({
                 TableName: "connections",
                 Item: { connectionId: connectionId, timestamp: Date.now() }
@@ -23,7 +23,6 @@ exports.handler = async (event) => {
             return { statusCode: 200, body: 'Connected.' };
 
         } else if (routeKey === "$disconnect") {
-            // Hapus dari tabel saat terputus
             await dbClient.send(new DeleteCommand({
                 TableName: "connections",
                 Key: { connectionId: connectionId }
@@ -31,33 +30,41 @@ exports.handler = async (event) => {
             return { statusCode: 200, body: 'Disconnected.' };
 
         } else if (routeKey === "broadcastMessage") {
-            // Mengirim pesan ke SEMUA koneksi yang sedang aktif
-            const body = JSON.parse(event.body);
+            const body = JSON.parse(event.body || "{}");
+            const message = body.message || "Pesan dari server!";
+            
             const scanResponse = await dbClient.send(new ScanCommand({ TableName: "connections" }));
             
-            // Loop semua koneksi dan jalankan PostToConnection (pararel)
-            const postCalls = scanResponse.Items.map(async ({ connectionId }) => {
+            const postCalls = (scanResponse.Items || []).map(async (item) => {
+                const targetId = item.connectionId;
                 try {
                     await apiGwClient.send(new PostToConnectionCommand({
-                        ConnectionId: connectionId,
-                        Data: Buffer.from(JSON.stringify({ type: "broadcast", message: body.message }))
+                        ConnectionId: targetId,
+                        Data: Buffer.from(JSON.stringify({ 
+                            type: "broadcast", 
+                            message: message,
+                            sender: connectionId 
+                        }))
                     }));
                 } catch (e) {
-                    if (e.$metadata.httpStatusCode === 410) {
-                        // 410 Gone berarti koneksi sudah mati/stale, kita hapus
-                        console.log(`Menghapus stale connection: ${connectionId}`);
-                        await dbClient.send(new DeleteCommand({ TableName: "connections", Key: { connectionId } }));
-                    } else { throw e; }
+                    if (e.$metadata && e.$metadata.httpStatusCode === 410) {
+                        await dbClient.send(new DeleteCommand({ TableName: "connections", Key: { connectionId: targetId } }));
+                    }
                 }
             });
             await Promise.all(postCalls);
-            return { statusCode: 200, body: 'Broadcast berhasil.' };
-            
-        } else {
-            return { statusCode: 200, body: 'Rute tidak dikenali.' };
-        }
+            return { statusCode: 200, body: 'Broadcast sent.' };
+        } else if (routeKey === "getConnectionId") {
+            await apiGwClient.send(new PostToConnectionCommand({
+                ConnectionId: connectionId,
+                Data: Buffer.from(JSON.stringify({ type: "connectionId", connectionId: connectionId }))
+            }));
+            return { statusCode: 200, body: 'ID Sent.' };
+        } 
+        
+        return { statusCode: 200, body: 'Route handled.' };
     } catch (error) {
-        console.error(error);
+        console.error("WebSocket Handler Error:", error);
         return { statusCode: 500, body: error.message };
     }
 };

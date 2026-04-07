@@ -1,6 +1,7 @@
 // ===== KONFIGURASI =====
 // Ganti API_BASE_URL dengan Invoke URL dari API Gateway AWS yang nanti Anda deploy
 const API_BASE_URL = 'https://icn5mfbylg.execute-api.us-west-2.amazonaws.com/prod';
+const WS_URL = 'wss://rcad7zxv7g.execute-api.us-west-2.amazonaws.com/production/'; // Ganti dengan WSS URL Anda
 
 /* ===================================================
    STATE
@@ -326,7 +327,17 @@ function submitOrder() {
       'Authorization': token,
       'Deviceid': deviceId
     },
-    body: JSON.stringify({ eventId: ev.id, eventName: ev.name, name, email, phone, qty, category: cat, total })
+    body: JSON.stringify({
+      eventId: ev.id,
+      eventName: ev.name,
+      name,
+      email,
+      phone,
+      qty,
+      category: cat,
+      total,
+      connectionId: state.wsConnectionId // Kirim connectionId agar bisa di-notif balik
+    })
   })
     .then(res => res.json())
     .then(data => {
@@ -735,7 +746,9 @@ function renderPaymentQueue() {
 /* ===================================================
    WEBSOCKET SIMULATOR
 =================================================== */
-function wsAddMessage(type, content, meta = '') {
+let ws = null;
+
+function wsAddMessage(type, content, meta = 'System') {
   const container = document.getElementById('ws-messages');
   if (!container) return;
   const div = document.createElement('div');
@@ -753,38 +766,67 @@ function wsAddMessage(type, content, meta = '') {
 function wsReceive(type, content, meta) { wsAddMessage(type, content, meta); }
 
 function wsConnect() {
-  if (state.wsConnected) return;
+  if (state.wsConnected || ws) return;
   const dot = document.getElementById('ws-sidebar-dot');
   const lbl = document.getElementById('ws-sidebar-label');
+
   dot.className = 'ws-dot connecting';
   lbl.textContent = 'Connecting...';
-
   document.getElementById('ws-status-text').textContent = 'Connecting...';
-  addLog('lks-websocket', `$connect route invoked`, 'warn');
 
-  setTimeout(() => {
+  addLog('lks-websocket', `Connecting to WebSocket: ${WS_URL}`, 'warn');
+
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
     state.wsConnected = true;
-    state.wsConnectionId = 'conn-' + uid();
-    state.wsConnections.push(state.wsConnectionId);
-
     dot.className = 'ws-dot connected';
     lbl.textContent = 'WebSocket: connected';
     document.getElementById('ws-status-text').textContent = 'Connected';
-    document.getElementById('ws-conn-id').textContent = state.wsConnectionId;
-    document.getElementById('ws-total-conn').textContent = state.wsConnections.length;
-    document.getElementById('dash-ws').textContent = state.wsConnections.length;
 
-    addLog('lks-websocket', `$connect: connectionId=${state.wsConnectionId} saved to DynamoDB`, 'ok');
-    wsReceive('system', `Connected. connectionId: ${state.wsConnectionId}`);
-    toast('WebSocket Connected!', `connectionId: ${state.wsConnectionId}`, 'ws');
-  }, 800);
+    addLog('lks-websocket', `WebSocket Connected`, 'ok');
+    wsReceive('system', `Connected to ${WS_URL}`);
+    toast('WebSocket Connected!', `Siap menerima notifikasi real-time.`, 'ws');
+
+    // Minta connectionId agar bisa kirim notifikasi balik nanti
+    ws.send(JSON.stringify({ action: "getConnectionId" }));
+  };
+
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    wsReceive('received', event.data, 'Server');
+
+    if (data.type === 'connectionId') {
+      state.wsConnectionId = data.connectionId;
+      document.getElementById('ws-conn-id').textContent = state.wsConnectionId;
+      addLog('lks-websocket', `connectionId received: ${state.wsConnectionId}`, 'ok');
+    } else if (data.type === 'order_confirmed') {
+      addLog('lks-websocket', `REAL-TIME: ${data.message}`, 'ok');
+      toast('Order Berhasil!', data.message, 'success');
+
+      // Update UI TIKET SAYA jika sedang dibuka
+      if (state.tickets) renderTickets();
+    } else if (data.type === 'broadcast') {
+      toast('Pesan Broadcast', data.message, 'info');
+    }
+  };
+
+  ws.onclose = () => {
+    wsDisconnect();
+  };
+
+  ws.onerror = (err) => {
+    addLog('lks-websocket', `WebSocket Error`, 'err');
+    wsDisconnect();
+  };
 }
 
 function wsDisconnect() {
-  if (!state.wsConnected) return;
-  addLog('lks-websocket', `$disconnect: connectionId=${state.wsConnectionId} removed from DynamoDB`, 'warn');
+  if (ws) {
+    ws.close();
+    ws = null;
+  }
   state.wsConnected = false;
-  state.wsConnections = state.wsConnections.filter(c => c !== state.wsConnectionId);
   state.wsConnectionId = null;
 
   const dot = document.getElementById('ws-sidebar-dot');
@@ -793,19 +835,18 @@ function wsDisconnect() {
   lbl.textContent = 'WebSocket: offline';
   document.getElementById('ws-status-text').textContent = 'Disconnected';
   document.getElementById('ws-conn-id').textContent = '—';
-  document.getElementById('ws-total-conn').textContent = state.wsConnections.length;
-  document.getElementById('dash-ws').textContent = state.wsConnections.length;
 
+  addLog('lks-websocket', `WebSocket Disconnected`, 'warn');
   wsReceive('system', 'Disconnected from WebSocket API.');
   toast('WebSocket Disconnected', 'Koneksi ditutup.', 'info');
 }
 
 function wsSend(route) {
-  if (!state.wsConnected) { toast('Tidak Terkoneksi', 'Connect dulu ke WebSocket!', 'error'); return; }
-  const payload = JSON.stringify({ action: route, connectionId: state.wsConnectionId });
+  if (!ws || state.wsConnected === false) { toast('Tidak Terkoneksi', 'Connect dulu ke WebSocket!', 'error'); return; }
+  const payload = JSON.stringify({ action: route, message: "Hello from Client!" });
+  ws.send(payload);
   wsAddMessage('sent', `action: ${route}`, 'Client');
-  addLog('lks-websocket', `Route: ${route} → lks-websocket Lambda invoked`, 'info');
-
+  addLog('lks-websocket', `Route: ${route} → Terkirim`, 'info');
   setTimeout(() => {
     if (route === 'getConnectionId') {
       wsReceive('received', `{ "connectionId": "${state.wsConnectionId}" }`, 'Server');
@@ -822,14 +863,12 @@ function wsSend(route) {
 }
 
 function broadcastMessage() {
-  if (!state.wsConnected) { toast('Tidak Terkoneksi', 'Connect dulu!', 'error'); return; }
+  if (!ws || !state.wsConnected) { toast('Tidak Terkoneksi', 'Connect dulu!', 'error'); return; }
   const msg = document.getElementById('ws-msg-input')?.value || 'Broadcast test!';
+  const payload = JSON.stringify({ action: "broadcastMessage", message: msg });
+  ws.send(payload);
   wsAddMessage('sent', `[BROADCAST] ${msg}`, 'Client');
-  addLog('lks-websocket', `broadcastMessage: sending to ${state.wsConnections.length} connection(s)`, 'info');
-  setTimeout(() => {
-    wsReceive('broadcast', `📢 Broadcast: ${msg}`, 'Server → All Clients');
-    addLog('lks-websocket', `broadcastMessage: delivered to all connections`, 'ok');
-  }, 400);
+  addLog('lks-websocket', `broadcastMessage: Terkirim ke server`, 'info');
 }
 
 function wsSendText() {
