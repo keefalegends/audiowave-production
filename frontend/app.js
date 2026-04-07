@@ -47,9 +47,9 @@ const eventEmojis = ['🎸', '🎺', '🥁', '🎹', '🎻', '🎤', '🎧', '�
 function nowTs() { return new Date().toLocaleTimeString('id-ID', { hour12: false }); }
 function nowFull() { return new Date().toLocaleString('id-ID'); }
 function uid() { return Math.random().toString(36).substr(2, 9).toUpperCase(); }
-function fmtRp(n) { 
+function fmtRp(n) {
   if (n === undefined || n === null) return 'Rp 0';
-  return 'Rp ' + Number(n).toLocaleString('id-ID'); 
+  return 'Rp ' + Number(n).toLocaleString('id-ID');
 }
 
 function toast(title, msg, type = 'info') {
@@ -141,7 +141,7 @@ async function renderEvents() {
       addLog('lks-read-event', `GET /events → Memanggil API...`, 'info');
       const res = await fetch(`${API_BASE_URL}/events`);
       const rawEvents = await res.json();
-      
+
       // Mapping nama kolom RDS ke properti Frontend
       state.events = rawEvents.map(ev => ({
         id: ev.id,
@@ -149,7 +149,7 @@ async function renderEvents() {
         venue: ev.venue,
         location: ev.venue, // Karena di DB cuma ada venue
         date: ev.date ? ev.date.split('T')[0] : '-',
-        time: ev.date ? ev.date.split('T')[1]?.substring(0,5) : '19:00',
+        time: ev.date ? ev.date.split('T')[1]?.substring(0, 5) : '19:00',
         price: ev.ticket_price || 0,
         tickets: ev.available_quota || 0,
         desc: ev.description || '-'
@@ -372,17 +372,17 @@ async function renderTickets() {
     });
     const tickets = await res.json();
     state.tickets = tickets.map(t => {
-       const rawDate = t.event_date || '';
-       return {
-         id: t.ticket_id || t.id,
-         eventName: t.event_name || 'Event',
-         name: t.user_email || t.email,
-         date: rawDate.includes('T') ? rawDate.split('T')[0] : rawDate,
-         venue: t.venue || '-',
-         category: t.category || 'regular',
-         qty: t.qty || 1,
-         total: 0
-       };
+      const rawDate = t.event_date || '';
+      return {
+        id: t.ticket_id || t.id,
+        eventName: t.event_name || 'Event',
+        name: t.user_email || t.email,
+        date: rawDate.includes('T') ? rawDate.split('T')[0] : rawDate,
+        venue: t.venue || '-',
+        category: t.category || 'regular',
+        qty: t.qty || 1,
+        total: 0
+      };
     });
     addLog('lks-ticket', `GET /ticket → Success (${state.tickets.length} tickets)`, 'ok');
   } catch (err) {
