@@ -140,6 +140,7 @@ async function renderEvents() {
     try {
       addLog('lks-read-event', `GET /events → Memanggil API...`, 'info');
       const res = await fetch(`${API_BASE_URL}/events`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}: Gagal memuat event`);
       const rawEvents = await res.json();
 
       // Mapping nama kolom RDS ke properti Frontend
@@ -227,9 +228,11 @@ function submitAddEvent() {
     },
     body: JSON.stringify({ id, name, date, venue, price, quota })
   })
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) return res.json().then(d => { throw new Error(d.error || d.message || `HTTP ${res.status}`); });
+      return res.json();
+    })
     .then(data => {
-      if (data.error) throw new Error(data.error);
       addLog('lks-write-event', `RDS Success: Event "${name}" Saved (201)`, 'ok');
       toast('Event Tersimpan!', `"${name}" berhasil masuk ke RDS.`, 'success');
       closeModal('modal-add-event');
@@ -259,9 +262,11 @@ function deleteEvent(id) {
       'Deviceid': deviceId
     }
   })
-  .then(res => res.json())
+  .then(res => {
+    if (!res.ok) return res.json().then(d => { throw new Error(d.error || d.message || `HTTP ${res.status}`); });
+    return res.json();
+  })
   .then(data => {
-    if (data.error) throw new Error(data.error);
     addLog('lks-write-event', `RDS Success: Event "${id}" Deleted`, 'ok');
     toast('Event Dihapus', `"${ev.name}" telah dihapus secara permanen.`, 'success');
     state.events = state.events.filter(e => e.id !== id);
