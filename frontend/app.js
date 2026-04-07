@@ -22,6 +22,7 @@ const state = {
   wsMessages: [],
   logFilter: 'all',
   selectedEvent: null,
+  userEmail: null,
   lambdaInvocations: {},
 };
 
@@ -251,31 +252,31 @@ function deleteEvent(id) {
   if (!confirm(`Hapus event "${ev.name}"?`)) return;
 
   addLog('lks-write-event', `DELETE /events → Menghapus "${ev.name}"...`, 'warn');
-  
+
   const token = document.getElementById('val-token').value;
   const deviceId = document.getElementById('val-device').value;
 
   fetch(`${API_BASE_URL}/events?id=${id}`, {
     method: 'DELETE',
-    headers: { 
+    headers: {
       'Authorization': token,
       'Deviceid': deviceId
     }
   })
-  .then(res => {
-    if (!res.ok) return res.json().then(d => { throw new Error(d.error || d.message || `HTTP ${res.status}`); });
-    return res.json();
-  })
-  .then(data => {
-    addLog('lks-write-event', `RDS Success: Event "${id}" Deleted`, 'ok');
-    toast('Event Dihapus', `"${ev.name}" telah dihapus secara permanen.`, 'success');
-    state.events = state.events.filter(e => e.id !== id);
-    renderEvents(); renderDashboard(); updateBadges();
-  })
-  .catch(err => {
-    addLog('lks-write-event', `Error: ${err.message}`, 'err');
-    toast('Gagal Hapus', err.message, 'error');
-  });
+    .then(res => {
+      if (!res.ok) return res.json().then(d => { throw new Error(d.error || d.message || `HTTP ${res.status}`); });
+      return res.json();
+    })
+    .then(data => {
+      addLog('lks-write-event', `RDS Success: Event "${id}" Deleted`, 'ok');
+      toast('Event Dihapus', `"${ev.name}" telah dihapus secara permanen.`, 'success');
+      state.events = state.events.filter(e => e.id !== id);
+      renderEvents(); renderDashboard(); updateBadges();
+    })
+    .catch(err => {
+      addLog('lks-write-event', `Error: ${err.message}`, 'err');
+      toast('Gagal Hapus', err.message, 'error');
+    });
 }
 
 /* ===================================================
@@ -306,6 +307,7 @@ function submitOrder() {
   const qty = parseInt(document.getElementById('buy-qty').value) || 1;
   const cat = document.getElementById('buy-category').value;
   if (!name || !email) { toast('Validasi Gagal', 'Nama dan email wajib diisi!', 'error'); return; }
+  state.userEmail = email; // Simpan email buat pencarian tiket nanti
 
   const ev = state.selectedEvent;
   const multiplier = cat === 'vip' ? 1.5 : cat === 'vvip' ? 2 : 1;
@@ -380,10 +382,10 @@ async function renderTickets() {
   const c = document.getElementById('tickets-container');
   if (!c) return;
 
-  const email = state.tokens[Object.keys(state.tokens)[0]]?.user || '';
+  const email = state.userEmail || state.tokens[Object.keys(state.tokens)[0]]?.user || 'lks';
   if (!email) {
     c.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text3);"><div style="font-size:48px;margin-bottom:12px;">👤</div><div>Gak ada data login. Silakan login dulu bradah!</div></div>`;
-    return;
+    updateBadges(); return;
   }
 
   const token = document.getElementById('val-token').value;
@@ -395,29 +397,26 @@ async function renderTickets() {
       headers: { 'Authorization': token, 'Deviceid': deviceId }
     });
     const tickets = await res.json();
-    state.tickets = tickets.map(t => {
-      const rawDate = t.event_date || '';
-      return {
-        id: t.ticket_id || t.id,
-        eventName: t.event_name || 'Event',
-        name: t.user_email || t.email,
-        date: rawDate.includes('T') ? rawDate.split('T')[0] : rawDate,
-        venue: t.venue || '-',
-        category: t.category || 'regular',
-        qty: t.qty || 1,
-        total: 0
-      };
-    });
+    state.tickets = tickets.map(t => ({
+      id: t.ticket_id || t.id || 'TIX-???',
+      eventName: t.event_name || 'Event Konser',
+      name: t.user_email || t.email || email,
+      date: (t.event_date || '').includes('T') ? t.event_date.split('T')[0] : (t.event_date || '-'),
+      venue: t.venue || 'Venue TBD',
+      category: (t.category || 'REGULAR').toUpperCase(),
+      qty: t.qty || 1
+    }));
     addLog('lks-ticket', `GET /ticket → Success (${state.tickets.length} tickets)`, 'ok');
   } catch (err) {
     addLog('lks-ticket', `GET /ticket → Error: ${err.message}`, 'err');
   }
 
-  if (!state.tickets.length) {
+  updateBadges();
+
+  if (state.tickets.length === 0) {
     c.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text3);"><div style="font-size:48px;margin-bottom:12px;">🎫</div><div>Belum ada tiket. Beli tiket di halaman Events!</div></div>`;
-    return;
-  }
-  c.innerHTML = state.tickets.map(t => `
+  } else {
+    c.innerHTML = state.tickets.map(t => `
     <div class="ticket-card">
       <div class="ticket-left"></div>
       <div class="ticket-body">
@@ -435,6 +434,7 @@ async function renderTickets() {
         <span class="badge badge-green">✓ Valid</span>
       </div>
     </div>`).join('');
+  }
 }
 
 function deleteTicket(id) {
