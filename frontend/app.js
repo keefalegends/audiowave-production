@@ -245,13 +245,32 @@ function submitAddEvent() {
 function deleteEvent(id) {
   const ev = state.events.find(e => e.id === id);
   if (!ev) return;
-  addLog('lks-write-event', `DELETE /event/${id} — "${ev.name}"`, 'warn');
-  setTimeout(() => {
-    addLog('lks-write-event', `RDS: DELETE FROM events WHERE id='${id}' → 200 OK`, 'ok');
+  if (!confirm(`Hapus event "${ev.name}"?`)) return;
+
+  addLog('lks-write-event', `DELETE /events → Menghapus "${ev.name}"...`, 'warn');
+  
+  const token = document.getElementById('val-token').value;
+  const deviceId = document.getElementById('val-device').value;
+
+  fetch(`${API_BASE_URL}/events?id=${id}`, {
+    method: 'DELETE',
+    headers: { 
+      'Authorization': token,
+      'Deviceid': deviceId
+    }
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) throw new Error(data.error);
+    addLog('lks-write-event', `RDS Success: Event "${id}" Deleted`, 'ok');
+    toast('Event Dihapus', `"${ev.name}" telah dihapus secara permanen.`, 'success');
     state.events = state.events.filter(e => e.id !== id);
     renderEvents(); renderDashboard(); updateBadges();
-    toast('Event Dihapus', `"${ev.name}" dihapus dari database.`, 'info');
-  }, 500);
+  })
+  .catch(err => {
+    addLog('lks-write-event', `Error: ${err.message}`, 'err');
+    toast('Gagal Hapus', err.message, 'error');
+  });
 }
 
 /* ===================================================

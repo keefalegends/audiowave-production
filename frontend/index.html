@@ -1,811 +1,999 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Sound Wave — Concert Tickets</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sound Wave — Concert Tickets</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
-<div class="orb orb1"></div>
-<div class="orb orb2"></div>
-<div id="toast-container"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div id="toast-container"></div>
 
-<!-- ===== MODAL: ADD EVENT ===== -->
-<div class="modal-overlay" id="modal-add-event">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Tambah Event Baru</div>
-      <button class="modal-close" onclick="closeModal('modal-add-event')">✕</button>
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:16px;font-family:monospace;">
-      POST /event → lks-auth → lks-write-event (Lambda) → RDS PostgreSQL
-    </div>
-    <div class="form-grid">
-      <div class="form-group">
-        <label class="form-label">Nama Event *</label>
-        <input class="form-input" id="ev-name" placeholder="Nama konser..." />
+  <!-- ===== MODAL: ADD EVENT ===== -->
+  <div class="modal-overlay" id="modal-add-event">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Tambah Event Baru</div>
+        <button class="modal-close" onclick="closeModal('modal-add-event')">✕</button>
       </div>
-      <div class="form-group">
-        <label class="form-label">Artis / Performer</label>
-        <input class="form-input" id="ev-artist" placeholder="Nama artis..." />
+      <div style="font-size:11px;color:var(--text3);margin-bottom:16px;font-family:monospace;">
+        POST /event → lks-auth → lks-write-event (Lambda) → RDS PostgreSQL
       </div>
-      <div class="form-group">
-        <label class="form-label">Lokasi *</label>
-        <input class="form-input" id="ev-loc" placeholder="Jakarta, Indonesia" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Venue</label>
-        <input class="form-input" id="ev-venue" placeholder="Nama venue..." />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Tanggal *</label>
-        <input class="form-input" type="date" id="ev-date" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Jam Mulai</label>
-        <input class="form-input" type="time" id="ev-time" value="19:00" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Harga Tiket (Rp) *</label>
-        <input class="form-input" type="number" id="ev-price" placeholder="350000" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Total Tiket</label>
-        <input class="form-input" type="number" id="ev-tickets" placeholder="500" value="500" />
-      </div>
-      <div class="form-group full">
-        <label class="form-label">Deskripsi</label>
-        <textarea class="form-input" id="ev-desc" rows="2" placeholder="Deskripsi singkat event..."></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('modal-add-event')">Batal</button>
-      <button class="btn btn-primary" onclick="submitAddEvent()">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        Simpan Event
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MODAL: BUY TICKET ===== -->
-<div class="modal-overlay" id="modal-buy">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Beli Tiket</div>
-      <button class="modal-close" onclick="closeModal('modal-buy')">✕</button>
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:16px;font-family:monospace;">
-      POST /order → lks-auth → lks-queue-order → SQS → lks-write-order → RDS
-    </div>
-    <div id="buy-event-info" class="card card-sm" style="margin-bottom:18px;"></div>
-    <div class="form-grid">
-      <div class="form-group">
-        <label class="form-label">Nama Lengkap *</label>
-        <input class="form-input" id="buy-name" placeholder="Nama pemesan..." />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Email *</label>
-        <input class="form-input" id="buy-email" type="email" placeholder="email@example.com" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">No. HP</label>
-        <input class="form-input" id="buy-phone" placeholder="08xx..." />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Jumlah Tiket *</label>
-        <input class="form-input" id="buy-qty" type="number" value="1" min="1" max="10" />
-      </div>
-      <div class="form-group full">
-        <label class="form-label">Kategori Tiket</label>
-        <select class="form-input" id="buy-category">
-          <option value="regular">Regular</option>
-          <option value="vip">VIP (+50%)</option>
-          <option value="vvip">VVIP (+100%)</option>
-        </select>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('modal-buy')">Batal</button>
-      <button class="btn btn-primary" onclick="submitOrder()">
-        Order &amp; Masuk Queue SQS
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== APP SHELL ===== -->
-<div class="app-shell">
-
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="brand">SoundWave</div>
-      <div class="sub">Concert Ticket Platform</div>
-    </div>
-
-    <nav class="nav">
-      <div class="nav-section">Frontend</div>
-      <button class="nav-item active" onclick="showPage('dashboard', this)">
-        <svg class="icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
-        Dashboard
-      </button>
-      <button class="nav-item" onclick="showPage('events', this)">
-        <svg class="icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M6 5.5l4 2.5-4 2.5V5.5z" fill="currentColor"/></svg>
-        Events
-        <span class="nav-badge" id="nb-events">3</span>
-      </button>
-      <button class="nav-item" onclick="showPage('orders', this)">
-        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M3 3h10l-1.5 7H4.5L3 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="6" cy="13.5" r="1" fill="currentColor"/><circle cx="10" cy="13.5" r="1" fill="currentColor"/></svg>
-        Orders
-        <span class="nav-badge" id="nb-orders">0</span>
-      </button>
-      <button class="nav-item" onclick="showPage('tickets', this)">
-        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M1 5.5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v1a2 2 0 0 0 0 3v1a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-1a2 2 0 0 0 0-3v-1z" stroke="currentColor" stroke-width="1.5"/></svg>
-        Tiket Saya
-        <span class="nav-badge green" id="nb-tickets">0</span>
-      </button>
-      <button class="nav-item" onclick="showPage('payment', this)">
-        <svg class="icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3.5" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.5"/></svg>
-        Pembayaran
-      </button>
-
-      <div class="nav-section">Backend / AWS</div>
-      <button class="nav-item" onclick="showPage('auth-page', this)">
-        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M8 1L6 5H2l3.27 2.38L4 12l4-2.9L12 12l-1.27-4.62L14 5h-4L8 1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
-        Auth &amp; Token
-      </button>
-      <button class="nav-item" onclick="showPage('sqs-page', this)">
-        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        SQS Queue
-        <span class="nav-badge red" id="nb-sqs">0</span>
-      </button>
-      <button class="nav-item" onclick="showPage('websocket-page', this)">
-        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M2 8c0-3.3 2.7-6 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M14 8c0 3.3-2.7 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>
-        WebSocket API
-      </button>
-      <button class="nav-item" onclick="showPage('lambda-page', this)">
-        <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M2 14L6 2l2.5 6L11 5l3 9" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-        Lambda Logs
-      </button>
-      <button class="nav-item" onclick="showPage('arch-page', this)">
-        <svg class="icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="1" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="6" y="11" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M3 5v3h10V5M8 8v3" stroke="currentColor" stroke-width="1.3"/></svg>
-        Architecture
-      </button>
-    </nav>
-
-    <div class="sidebar-footer">
-      <div class="ws-indicator">
-        <div class="ws-dot" id="ws-sidebar-dot"></div>
-        <span id="ws-sidebar-label">WebSocket: offline</span>
-      </div>
-    </div>
-  </aside>
-
-  <!-- MAIN -->
-  <main class="main">
-    <div class="topbar">
-      <div class="topbar-title" id="topbar-title">Dashboard</div>
-      <div class="topbar-right">
-        <div class="auth-status" id="auth-status-bar">
-          <span>●</span> Belum login
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Nama Event *</label>
+          <input class="form-input" id="ev-name" placeholder="Nama konser..." />
         </div>
-        <button class="btn btn-sm" onclick="showPage('auth-page', null)">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8h10M8 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Login
+        <div class="form-group">
+          <label class="form-label">Artis / Performer</label>
+          <input class="form-input" id="ev-artist" placeholder="Nama artis..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lokasi *</label>
+          <input class="form-input" id="ev-loc" placeholder="Jakarta, Indonesia" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Venue</label>
+          <input class="form-input" id="ev-venue" placeholder="Nama venue..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tanggal *</label>
+          <input class="form-input" type="date" id="ev-date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Jam Mulai</label>
+          <input class="form-input" type="time" id="ev-time" value="19:00" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Harga Tiket (Rp) *</label>
+          <input class="form-input" type="number" id="ev-price" placeholder="350000" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Total Tiket</label>
+          <input class="form-input" type="number" id="ev-tickets" placeholder="500" value="500" />
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Deskripsi</label>
+          <textarea class="form-input" id="ev-desc" rows="2" placeholder="Deskripsi singkat event..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('modal-add-event')">Batal</button>
+        <button class="btn btn-primary" onclick="submitAddEvent()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          Simpan Event
         </button>
       </div>
     </div>
+  </div>
 
-    <!-- ===== DASHBOARD ===== -->
-    <div class="page active" id="page-dashboard">
-      <div class="page-hero">
-        <h1>Sound Wave Production</h1>
-        <p>Concert Ticket Platform — Serverless on AWS</p>
+  <!-- ===== MODAL: BUY TICKET ===== -->
+  <div class="modal-overlay" id="modal-buy">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Beli Tiket</div>
+        <button class="modal-close" onclick="closeModal('modal-buy')">✕</button>
       </div>
-
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-label">Total Events</div>
-          <div class="stat-val accent" id="dash-events">3</div>
-          <div class="stat-sub">lks-read-event (Lambda)</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Total Orders</div>
-          <div class="stat-val green" id="dash-orders">0</div>
-          <div class="stat-sub">lks-read-order (Lambda)</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">SQS Queue</div>
-          <div class="stat-val gold" id="dash-queue">0</div>
-          <div class="stat-sub">lks-queue-order + lks-queue-payment</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">WS Connections</div>
-          <div class="stat-val" id="dash-ws">0</div>
-          <div class="stat-sub">API WebSocket (prod stage)</div>
-        </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:16px;font-family:monospace;">
+        POST /order → lks-auth → lks-queue-order → SQS → lks-write-order → RDS
       </div>
-
-      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;">
-        <div>
-          <div class="sec-header">
-            <div>
-              <div class="sec-title">Events Terbaru</div>
-              <div class="sec-sub">GET /event → lks-read-event</div>
-            </div>
-            <button class="btn btn-sm btn-primary" onclick="openModal('modal-add-event')">+ Tambah</button>
-          </div>
-          <div id="dash-event-list"></div>
+      <div id="buy-event-info" class="card card-sm" style="margin-bottom:18px;"></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Nama Lengkap *</label>
+          <input class="form-input" id="buy-name" placeholder="Nama pemesan..." />
         </div>
-        <div>
-          <div class="sec-header">
-            <div>
-              <div class="sec-title">AWS Services</div>
-              <div class="sec-sub">Status layanan</div>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:10px;" id="aws-status-list"></div>
+        <div class="form-group">
+          <label class="form-label">Email *</label>
+          <input class="form-input" id="buy-email" type="email" placeholder="email@example.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">No. HP</label>
+          <input class="form-input" id="buy-phone" placeholder="08xx..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Jumlah Tiket *</label>
+          <input class="form-input" id="buy-qty" type="number" value="1" min="1" max="10" />
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Kategori Tiket</label>
+          <select class="form-input" id="buy-category">
+            <option value="regular">Regular</option>
+            <option value="vip">VIP (+50%)</option>
+            <option value="vvip">VVIP (+100%)</option>
+          </select>
         </div>
       </div>
-    </div>
-
-    <!-- ===== EVENTS ===== -->
-    <div class="page" id="page-events">
-      <div class="page-hero">
-        <h1>Events</h1>
-        <p>Kelola semua event konser</p>
-        <div class="route-tag">GET /event → lks-read-event &nbsp;|&nbsp; POST /event → lks-write-event &nbsp;|&nbsp; DELETE /event/{id}</div>
-      </div>
-      <div class="sec-header">
-        <div style="display:flex;gap:10px;align-items:center;">
-          <input class="form-input" id="event-search" placeholder="Cari event..." style="width:220px;" oninput="renderEvents()" />
-        </div>
-        <button class="btn btn-primary" onclick="openModal('modal-add-event')">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          Tambah Event
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('modal-buy')">Batal</button>
+        <button class="btn btn-primary" onclick="submitOrder()">
+          Order &amp; Masuk Queue SQS
         </button>
       </div>
-      <div class="events-grid" id="events-grid"></div>
     </div>
+  </div>
 
-    <!-- ===== ORDERS ===== -->
-    <div class="page" id="page-orders">
-      <div class="page-hero">
-        <h1>Orders</h1>
-        <p>Semua pesanan tiket konser</p>
-        <div class="route-tag">GET /order → lks-read-order &nbsp;|&nbsp; POST /order → lks-queue-order → SQS</div>
-      </div>
-      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat-card">
-          <div class="stat-label">Total Orders</div>
-          <div class="stat-val green" id="ord-total">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">In Queue</div>
-          <div class="stat-val gold" id="ord-queue">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Total Revenue</div>
-          <div class="stat-val accent" id="ord-revenue">Rp 0</div>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Order ID</th><th>Event</th><th>Pemesan</th>
-            <th>Qty</th><th>Kategori</th><th>Total</th><th>Status</th><th>Aksi</th>
-          </tr></thead>
-          <tbody id="orders-tbody"></tbody>
-        </table>
-      </div>
-    </div>
+  <!-- ===== APP SHELL ===== -->
+  <div class="app-shell">
 
-    <!-- ===== TICKETS ===== -->
-    <div class="page" id="page-tickets">
-      <div class="page-hero">
-        <h1>Tiket Saya</h1>
-        <p>Semua tiket yang sudah dibeli</p>
-        <div class="route-tag">GET /ticket → lks-ticket (Lambda)</div>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="brand">SoundWave</div>
+        <div class="sub">Concert Ticket Platform</div>
       </div>
-      <div id="tickets-container">
-        <div style="text-align:center;padding:60px;color:var(--text3);">
-          <div style="font-size:48px;margin-bottom:12px;">🎫</div>
-          <div>Belum ada tiket. Beli tiket dulu di halaman Events!</div>
+
+      <nav class="nav">
+        <div class="nav-section">Frontend</div>
+        <button class="nav-item active" onclick="showPage('dashboard', this)">
+          <svg class="icon" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" />
+            <rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" />
+            <rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" />
+            <rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          Dashboard
+        </button>
+        <button class="nav-item" onclick="showPage('events', this)">
+          <svg class="icon" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5" />
+            <path d="M6 5.5l4 2.5-4 2.5V5.5z" fill="currentColor" />
+          </svg>
+          Events
+          <span class="nav-badge" id="nb-events">3</span>
+        </button>
+        <button class="nav-item" onclick="showPage('orders', this)">
+          <svg class="icon" viewBox="0 0 16 16" fill="none">
+            <path d="M3 3h10l-1.5 7H4.5L3 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+            <circle cx="6" cy="13.5" r="1" fill="currentColor" />
+            <circle cx="10" cy="13.5" r="1" fill="currentColor" />
+          </svg>
+          Orders
+          <span class="nav-badge" id="nb-orders">0</span>
+        </button>
+        <button class="nav-item" onclick="showPage('tickets', this)">
+          <svg class="icon" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M1 5.5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v1a2 2 0 0 0 0 3v1a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-1a2 2 0 0 0 0-3v-1z"
+              stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          Tiket Saya
+          <span class="nav-badge green" id="nb-tickets">0</span>
+        </button>
+        <button class="nav-item" onclick="showPage('payment', this)">
+          <svg class="icon" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="3.5" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5" />
+            <path d="M1 7h14" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          Pembayaran
+        </button>
+
+        <div class="nav-section">Backend / AWS</div>
+        <button class="nav-item" onclick="showPage('auth-page', this)">
+          <svg class="icon" viewBox="0 0 16 16" fill="none">
+            <path d="M8 1L6 5H2l3.27 2.38L4 12l4-2.9L12 12l-1.27-4.62L14 5h-4L8 1z" stroke="currentColor"
+              stroke-width="1.3" stroke-linejoin="round" />
+          </svg>
+          Auth &amp; Token
+        </button>
+        <button class="nav-item" onclick="showPage('sqs-page', this)">
+          <svg class="icon" viewBox="0 0 16 16" fill="none">
+            <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          SQS Queue
+          <span class="nav-badge red" id="nb-sqs">0</span>
+        </button>
+        <button class="nav-item" onclick="showPage('websocket-page', this)">
+          <svg class="icon" viewBox="0 0 16 16" fill="none">
+            <path d="M2 8c0-3.3 2.7-6 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            <path d="M14 8c0 3.3-2.7 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            <circle cx="8" cy="8" r="2" fill="currentColor" />
+          </svg>
+          WebSocket API
+        </button>
+        <button class="nav-item" onclick="showPage('lambda-page', this)">
+          <svg class="icon" viewBox="0 0 16 16" fill="none">
+            <path d="M2 14L6 2l2.5 6L11 5l3 9" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+          </svg>
+          Lambda Logs
+        </button>
+        <button class="nav-item" onclick="showPage('arch-page', this)">
+          <svg class="icon" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="1" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.5" />
+            <rect x="11" y="1" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.5" />
+            <rect x="6" y="11" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.5" />
+            <path d="M3 5v3h10V5M8 8v3" stroke="currentColor" stroke-width="1.3" />
+          </svg>
+          Architecture
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="ws-indicator">
+          <div class="ws-dot" id="ws-sidebar-dot"></div>
+          <span id="ws-sidebar-label">WebSocket: offline</span>
         </div>
       </div>
-    </div>
+    </aside>
 
-    <!-- ===== PAYMENT ===== -->
-    <div class="page" id="page-payment">
-      <div class="page-hero">
-        <h1>Pembayaran</h1>
-        <p>Upload bukti pembayaran — S3 → SQS → Lambda</p>
-        <div class="route-tag">PUT /payment/{filename} → S3 (proofOfPayment/) → lks-queue-payment → lks-payment</div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-        <div>
-          <div class="sec-header"><div class="sec-title">Upload Bukti Transfer</div></div>
-          <div class="upload-zone" id="upload-zone" onclick="simulateUpload()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="event.preventDefault();this.classList.remove('drag');simulateUpload()">
-            <div class="upload-icon">📁</div>
-            <div class="upload-title">Klik atau drag file di sini</div>
-            <div class="upload-desc">Simulasi upload ke S3 bucket<br><code style="font-size:11px;color:var(--accent2);">lks-YourName-YourProvince/proofOfPayment/</code></div>
+    <!-- MAIN -->
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+        <div class="topbar-right">
+          <div class="auth-status" id="auth-status-bar">
+            <span>●</span> Belum login
           </div>
-          <div id="upload-list" style="margin-top:16px;"></div>
+          <button class="btn btn-sm" onclick="showPage('auth-page', null)">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+              <path d="M2 8h10M8 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+            Login
+          </button>
         </div>
-        <div>
-          <div class="sec-header"><div class="sec-title">S3 Lifecycle Policy</div></div>
-          <div class="card card-sm" style="margin-bottom:12px;">
-            <div style="font-size:12px;color:var(--text2);line-height:1.8;">
-              <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
-                <span style="color:var(--text3);">Bucket</span>
-                <span class="badge badge-accent" style="font-family:monospace;">lks-YourName-YourProvince</span>
+      </div>
+
+      <!-- ===== DASHBOARD ===== -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-hero">
+          <h1>Sound Wave Production</h1>
+          <p>Concert Ticket Platform — Serverless on AWS</p>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Total Events</div>
+            <div class="stat-val accent" id="dash-events">3</div>
+            <div class="stat-sub">lks-read-event (Lambda)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Orders</div>
+            <div class="stat-val green" id="dash-orders">0</div>
+            <div class="stat-sub">lks-read-order (Lambda)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">SQS Queue</div>
+            <div class="stat-val gold" id="dash-queue">0</div>
+            <div class="stat-sub">lks-queue-order + lks-queue-payment</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">WS Connections</div>
+            <div class="stat-val" id="dash-ws">0</div>
+            <div class="stat-sub">API WebSocket (prod stage)</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;">
+          <div>
+            <div class="sec-header">
+              <div>
+                <div class="sec-title">Events Terbaru</div>
+                <div class="sec-sub">GET /event → lks-read-event</div>
               </div>
-              <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
-                <span style="color:var(--text3);">Folder</span>
-                <span style="font-family:monospace;font-size:11px;">proofOfPayment/</span>
+              <button class="btn btn-sm btn-primary" onclick="openModal('modal-add-event')">+ Tambah</button>
+            </div>
+            <div id="dash-event-list"></div>
+          </div>
+          <div>
+            <div class="sec-header">
+              <div>
+                <div class="sec-title">AWS Services</div>
+                <div class="sec-sub">Status layanan</div>
               </div>
-              <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
-                <span style="color:var(--text3);">Setelah 6 bulan</span>
-                <span class="badge badge-gold">→ Glacier Deep Archive</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;" id="aws-status-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== EVENTS ===== -->
+      <div class="page" id="page-events">
+        <div class="page-hero">
+          <h1>Events</h1>
+          <p>Kelola semua event konser</p>
+          <div class="route-tag">GET /event → lks-read-event &nbsp;|&nbsp; POST /event → lks-write-event &nbsp;|&nbsp;
+            DELETE /event/{id}</div>
+        </div>
+        <div class="sec-header">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <input class="form-input" id="event-search" placeholder="Cari event..." style="width:220px;"
+              oninput="renderEvents()" />
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-event')">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+              <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            Tambah Event
+          </button>
+        </div>
+        <div class="events-grid" id="events-grid"></div>
+      </div>
+
+      <!-- ===== ORDERS ===== -->
+      <div class="page" id="page-orders">
+        <div class="page-hero">
+          <h1>Orders</h1>
+          <p>Semua pesanan tiket konser</p>
+          <div class="route-tag">GET /order → lks-read-order &nbsp;|&nbsp; POST /order → lks-queue-order → SQS</div>
+        </div>
+        <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
+          <div class="stat-card">
+            <div class="stat-label">Total Orders</div>
+            <div class="stat-val green" id="ord-total">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">In Queue</div>
+            <div class="stat-val gold" id="ord-queue">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-val accent" id="ord-revenue">Rp 0</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Event</th>
+                <th>Pemesan</th>
+                <th>Qty</th>
+                <th>Kategori</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="orders-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== TICKETS ===== -->
+      <div class="page" id="page-tickets">
+        <div class="page-hero">
+          <h1>Tiket Saya</h1>
+          <p>Semua tiket yang sudah dibeli</p>
+          <div class="route-tag">GET /ticket → lks-ticket (Lambda)</div>
+        </div>
+        <div id="tickets-container">
+          <div style="text-align:center;padding:60px;color:var(--text3);">
+            <div style="font-size:48px;margin-bottom:12px;">🎫</div>
+            <div>Belum ada tiket. Beli tiket dulu di halaman Events!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PAYMENT ===== -->
+      <div class="page" id="page-payment">
+        <div class="page-hero">
+          <h1>Pembayaran</h1>
+          <p>Upload bukti pembayaran — S3 → SQS → Lambda</p>
+          <div class="route-tag">PUT /payment/{filename} → S3 (proofOfPayment/) → lks-queue-payment → lks-payment</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <div>
+            <div class="sec-header">
+              <div class="sec-title">Upload Bukti Transfer</div>
+            </div>
+            <div class="upload-zone" id="upload-zone" onclick="simulateUpload()"
+              ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')"
+              ondrop="event.preventDefault();this.classList.remove('drag');simulateUpload()">
+              <div class="upload-icon">📁</div>
+              <div class="upload-title">Klik atau drag file di sini</div>
+              <div class="upload-desc">Simulasi upload ke S3 bucket<br><code
+                  style="font-size:11px;color:var(--accent2);">lks-YourName-YourProvince/proofOfPayment/</code></div>
+            </div>
+            <div id="upload-list" style="margin-top:16px;"></div>
+          </div>
+          <div>
+            <div class="sec-header">
+              <div class="sec-title">S3 Lifecycle Policy</div>
+            </div>
+            <div class="card card-sm" style="margin-bottom:12px;">
+              <div style="font-size:12px;color:var(--text2);line-height:1.8;">
+                <div
+                  style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+                  <span style="color:var(--text3);">Bucket</span>
+                  <span class="badge badge-accent" style="font-family:monospace;">lks-YourName-YourProvince</span>
+                </div>
+                <div
+                  style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+                  <span style="color:var(--text3);">Folder</span>
+                  <span style="font-family:monospace;font-size:11px;">proofOfPayment/</span>
+                </div>
+                <div
+                  style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+                  <span style="color:var(--text3);">Setelah 6 bulan</span>
+                  <span class="badge badge-gold">→ Glacier Deep Archive</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:4px 0;">
+                  <span style="color:var(--text3);">Setelah 1 tahun</span>
+                  <span class="badge badge-red">→ Delete otomatis</span>
+                </div>
               </div>
-              <div style="display:flex;justify-content:space-between;padding:4px 0;">
-                <span style="color:var(--text3);">Setelah 1 tahun</span>
-                <span class="badge badge-red">→ Delete otomatis</span>
+            </div>
+            <div class="sec-header" style="margin-top:16px;">
+              <div class="sec-title">Payment Queue Status</div>
+            </div>
+            <div id="payment-queue-list">
+              <div style="font-size:13px;color:var(--text3);text-align:center;padding:20px;">Queue kosong</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== AUTH PAGE ===== -->
+      <div class="page" id="page-auth-page">
+        <div class="page-hero">
+          <h1>Auth &amp; Token</h1>
+          <p>DynamoDB tokens table + Custom Authorizer</p>
+        </div>
+        <div class="auth-steps">
+          <!-- STEP 1: Generate Token -->
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-title">Generate Token</div>
+            <div class="step-desc">
+              POST /token diamankan dengan <strong>AWS IAM (Signature)</strong>. Lambda <code
+                style="font-family:monospace;font-size:12px;color:var(--accent2);">lks-token</code> akan menyimpan token
+              ke DynamoDB tabel "tokens" (pk: token, sk: deviceid).
+            </div>
+            <div class="form-group" style="margin-bottom:12px;">
+              <label class="form-label">User ID / Email</label>
+              <input class="form-input" id="auth-user" placeholder="user@email.com" value="lks" />
+            </div>
+            <div class="form-group" style="margin-bottom:16px;">
+              <label class="form-label">Device ID</label>
+              <input class="form-input" id="auth-device" placeholder="device-001" value="device-001" />
+            </div>
+            <button class="btn btn-primary" onclick="generateToken()" style="width:100%;">
+              Generate Token → DynamoDB
+            </button>
+            <div id="token-result" style="margin-top:14px;display:none;">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Token tersimpan di DynamoDB:</div>
+              <div class="token-display" id="token-val"></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+                <span class="badge badge-green">RCU: 10–100</span>
+                <span class="badge badge-accent">WCU: 5–25</span>
+                <span class="badge badge-gray">Target: 70%</span>
               </div>
             </div>
           </div>
-          <div class="sec-header" style="margin-top:16px;"><div class="sec-title">Payment Queue Status</div></div>
-          <div id="payment-queue-list">
+
+          <!-- STEP 2: Validate Token -->
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-title">Validasi via lks-auth</div>
+            <div class="step-desc">
+              Setiap request ke endpoint yang diamankan harus menyertakan header <code
+                style="font-family:monospace;font-size:12px;color:var(--accent2);">Authorization</code> dan <code
+                style="font-family:monospace;font-size:12px;color:var(--accent2);">Deviceid</code>. Lambda <code
+                style="font-family:monospace;font-size:12px;color:var(--accent2);">lks-auth</code> query ke DynamoDB.
+            </div>
+            <div class="form-group" style="margin-bottom:12px;">
+              <label class="form-label">Token</label>
+              <input class="form-input" id="val-token" placeholder="Paste token..." />
+            </div>
+            <div class="form-group" style="margin-bottom:16px;">
+              <label class="form-label">Device ID</label>
+              <input class="form-input" id="val-device" placeholder="device-001" />
+            </div>
+            <button class="btn" onclick="validateToken()" style="width:100%;">
+              Validasi via lks-auth
+            </button>
+            <div id="val-result" style="margin-top:14px;font-size:13px;"></div>
+          </div>
+
+          <!-- DynamoDB Info -->
+          <div class="step-card">
+            <div class="step-num" style="background:var(--teal);color:#000;">D</div>
+            <div class="step-title">DynamoDB — tokens</div>
+            <div class="step-desc">Tabel tokens dengan provisioned capacity + auto scaling.</div>
+            <div
+              style="background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);">
+              <div class="ssm-row"
+                style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">
+                <span>Key</span><span>Type</span><span>Value</span>
+              </div>
+              <div class="ssm-row"><span class="ssm-key">token</span><span class="badge badge-accent">Partition Key
+                  (S)</span><span class="ssm-val">—</span></div>
+              <div class="ssm-row"><span class="ssm-key">deviceid</span><span class="badge badge-teal">Sort Key
+                  (S)</span><span class="ssm-val">—</span></div>
+              <div class="ssm-row"><span class="ssm-key">userId</span><span class="badge badge-gray">String</span><span
+                  class="ssm-val">—</span></div>
+              <div class="ssm-row"><span class="ssm-key">createdAt</span><span
+                  class="badge badge-gray">String</span><span class="ssm-val">—</span></div>
+            </div>
+            <div id="dynamo-table" style="margin-top:12px;"></div>
+          </div>
+
+          <!-- SSM Parameter Store -->
+          <div class="step-card">
+            <div class="step-num" style="background:var(--gold);color:#000;">S</div>
+            <div class="step-title">SSM Parameter Store</div>
+            <div class="step-desc">Lambda CRUD ke RDS mengambil config via <code
+                style="font-family:monospace;font-size:12px;color:var(--accent2);">/lks/database/{{KEY}}</code></div>
+            <div
+              style="background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);">
+              <div class="ssm-row"><span class="ssm-key">/lks/database/dbname</span><span
+                  class="badge badge-accent">String</span><span class="ssm-val">lks_concert</span></div>
+              <div class="ssm-row"><span class="ssm-key">/lks/database/username</span><span
+                  class="badge badge-accent">String</span><span class="ssm-val">lks_admin</span></div>
+              <div class="ssm-row"><span class="ssm-key">/lks/database/password</span><span
+                  class="badge badge-red">SecureString</span><span class="ssm-val">••••••••</span></div>
+              <div class="ssm-row"><span class="ssm-key">/lks/database/endpoint</span><span
+                  class="badge badge-accent">String</span><span class="ssm-val"
+                  style="font-size:10px;">lks-rds.cluster.us-west-2.rds.amazonaws.com</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SQS PAGE ===== -->
+      <div class="page" id="page-sqs-page">
+        <div class="page-hero">
+          <h1>SQS Queue</h1>
+          <p>Decoupled Architecture — Antrian Pesan</p>
+          <div class="route-tag">lks-queue-order &nbsp;|&nbsp; lks-queue-payment &nbsp;|&nbsp; DLQ</div>
+        </div>
+
+        <!-- ORDER QUEUE -->
+        <div class="card" style="margin-bottom:24px;">
+          <div class="sec-header">
+            <div>
+              <div class="sec-title">lks-queue-order</div>
+              <div class="sec-sub">FIFO · Max 256KB · Visibility 30s · Retention 4 days · High Throughput</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="badge badge-accent" id="sqs-order-cnt">0 pesan</span>
+              <button class="btn btn-sm btn-primary" onclick="processNextOrder()">Proses Satu Pesan</button>
+              <button class="btn btn-sm" onclick="processAllOrders()">Proses Semua</button>
+            </div>
+          </div>
+
+          <!-- PIPELINE VIZ -->
+          <div class="queue-pipeline">
+            <div class="queue-stage" id="qs-api">
+              <div class="queue-stage-title">API Gateway</div>
+              <div class="queue-stage-main">POST /order</div>
+            </div>
+            <div class="queue-arrow"></div>
+            <div class="queue-stage" id="qs-lambda-q">
+              <div class="queue-stage-title">Lambda</div>
+              <div class="queue-stage-main">lks-queue-order</div>
+            </div>
+            <div class="queue-arrow"></div>
+            <div class="queue-stage" id="qs-sqs">
+              <div class="queue-stage-title">SQS FIFO</div>
+              <div class="queue-stage-main" id="qs-count">0 msg</div>
+            </div>
+            <div class="queue-arrow"></div>
+            <div class="queue-stage" id="qs-write">
+              <div class="queue-stage-title">Lambda</div>
+              <div class="queue-stage-main">lks-write-order</div>
+            </div>
+            <div class="queue-arrow"></div>
+            <div class="queue-stage" id="qs-rds">
+              <div class="queue-stage-title">RDS PostgreSQL</div>
+              <div class="queue-stage-main">INSERT orders</div>
+            </div>
+          </div>
+
+          <div id="order-queue-msgs">
+            <div style="font-size:13px;color:var(--text3);text-align:center;padding:20px;">Queue kosong — buat order di
+              halaman Events</div>
+          </div>
+        </div>
+
+        <!-- PAYMENT QUEUE -->
+        <div class="card" style="margin-bottom:24px;">
+          <div class="sec-header">
+            <div>
+              <div class="sec-title">lks-queue-payment</div>
+              <div class="sec-sub">FIFO · Max 256KB · Visibility 30s · Retention 2 days · High Throughput</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="badge badge-gold" id="sqs-pay-cnt">0 pesan</span>
+              <button class="btn btn-sm" onclick="simulateS3Upload()">Simulasi S3 Upload</button>
+            </div>
+          </div>
+          <div class="queue-pipeline">
+            <div class="queue-stage">
+              <div class="queue-stage-title">S3 Bucket</div>
+              <div class="queue-stage-main">proofOfPayment/</div>
+            </div>
+            <div class="queue-arrow"></div>
+            <div class="queue-stage">
+              <div class="queue-stage-title">S3 Notification</div>
+              <div class="queue-stage-main">PutObject Event</div>
+            </div>
+            <div class="queue-arrow"></div>
+            <div class="queue-stage">
+              <div class="queue-stage-title">SQS FIFO</div>
+              <div class="queue-stage-main" id="qs-pay-count">0 msg</div>
+            </div>
+            <div class="queue-arrow"></div>
+            <div class="queue-stage">
+              <div class="queue-stage-title">Lambda</div>
+              <div class="queue-stage-main">lks-payment</div>
+            </div>
+          </div>
+          <div id="payment-queue-msgs">
             <div style="font-size:13px;color:var(--text3);text-align:center;padding:20px;">Queue kosong</div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- ===== AUTH PAGE ===== -->
-    <div class="page" id="page-auth-page">
-      <div class="page-hero">
-        <h1>Auth &amp; Token</h1>
-        <p>DynamoDB tokens table + Custom Authorizer</p>
+        <!-- DLQ -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="card card-sm">
+            <div class="sec-title" style="font-size:15px;margin-bottom:4px;">lks-queue-order-dlq</div>
+            <div class="sec-sub" style="margin-bottom:12px;">Dead Letter Queue — order gagal diproses</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div class="stat-val red" id="dlq-order-cnt">0</div>
+              <button class="btn btn-sm btn-danger" onclick="simulateDLQ('order')">Simulasi Gagal</button>
+            </div>
+            <div id="dlq-order-msgs" style="margin-top:12px;"></div>
+          </div>
+          <div class="card card-sm">
+            <div class="sec-title" style="font-size:15px;margin-bottom:4px;">lks-queue-payment-dlq</div>
+            <div class="sec-sub" style="margin-bottom:12px;">Dead Letter Queue — payment gagal diproses</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div class="stat-val red" id="dlq-pay-cnt">0</div>
+              <button class="btn btn-sm btn-danger" onclick="simulateDLQ('payment')">Simulasi Gagal</button>
+            </div>
+            <div id="dlq-pay-msgs" style="margin-top:12px;"></div>
+          </div>
+        </div>
       </div>
-      <div class="auth-steps">
-        <!-- STEP 1: Generate Token -->
-        <div class="step-card">
-          <div class="step-num">1</div>
-          <div class="step-title">Generate Token</div>
-          <div class="step-desc">
-            POST /token diamankan dengan <strong>AWS IAM (Signature)</strong>. Lambda <code style="font-family:monospace;font-size:12px;color:var(--accent2);">lks-token</code> akan menyimpan token ke DynamoDB tabel "tokens" (pk: token, sk: deviceid).
-          </div>
-          <div class="form-group" style="margin-bottom:12px;">
-            <label class="form-label">User ID / Email</label>
-            <input class="form-input" id="auth-user" placeholder="user@email.com" value="admin@soundwave.id" />
-          </div>
-          <div class="form-group" style="margin-bottom:16px;">
-            <label class="form-label">Device ID</label>
-            <input class="form-input" id="auth-device" placeholder="device-001" value="device-001" />
-          </div>
-          <button class="btn btn-primary" onclick="generateToken()" style="width:100%;">
-            Generate Token → DynamoDB
-          </button>
-          <div id="token-result" style="margin-top:14px;display:none;">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Token tersimpan di DynamoDB:</div>
-            <div class="token-display" id="token-val"></div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-              <span class="badge badge-green">RCU: 10–100</span>
-              <span class="badge badge-accent">WCU: 5–25</span>
-              <span class="badge badge-gray">Target: 70%</span>
+
+      <!-- ===== WEBSOCKET PAGE ===== -->
+      <div class="page" id="page-websocket-page">
+        <div class="page-hero">
+          <h1>WebSocket API</h1>
+          <p>Real-time async notifications dari SQS consumer</p>
+          <div class="route-tag">API WebSocket — prod stage — $request.body.action</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <!-- LEFT: Connection & Routes -->
+          <div>
+            <div class="card" style="margin-bottom:16px;">
+              <div class="sec-title" style="font-size:15px;margin-bottom:12px;">Connection Control</div>
+              <div style="display:flex;gap:10px;margin-bottom:16px;">
+                <button class="btn btn-primary" id="ws-connect-btn" onclick="wsConnect()">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5" />
+                    <path d="M5.5 8h5M8 5.5l2.5 2.5-2.5 2.5" stroke="currentColor" stroke-width="1.3"
+                      stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  Connect
+                </button>
+                <button class="btn btn-danger" onclick="wsDisconnect()">Disconnect</button>
+              </div>
+              <div
+                style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-size:12px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                  <span style="color:var(--text3);">Status</span>
+                  <span id="ws-status-text">Disconnected</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                  <span style="color:var(--text3);">Connection ID</span>
+                  <span id="ws-conn-id" style="font-family:monospace;color:var(--teal);">—</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <span style="color:var(--text3);">Total Connections</span>
+                  <span id="ws-total-conn">0</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px;">
+              <div class="sec-title" style="font-size:15px;margin-bottom:12px;">Routes</div>
+              <div class="ws-routes">
+                <button class="route-btn" onclick="wsSend('$connect')">$connect</button>
+                <button class="route-btn" onclick="wsSend('$disconnect')">$disconnect</button>
+                <button class="route-btn" onclick="wsSend('$default')">$default</button>
+                <button class="route-btn" onclick="wsSend('sendMessage')">sendMessage</button>
+                <button class="route-btn" onclick="wsSend('getConnectionId')">getConnectionId</button>
+                <button class="route-btn" onclick="broadcastMessage()">broadcastMessage</button>
+              </div>
+              <div class="form-group" style="margin-bottom:10px;">
+                <label class="form-label">Custom Message Body</label>
+                <input class="form-input" id="ws-custom-msg" placeholder='{"action":"sendMessage","data":"Hello!"}' />
+              </div>
+              <button class="btn btn-sm" onclick="wsSendCustom()">Kirim Custom</button>
+            </div>
+
+            <div class="card">
+              <div class="sec-title" style="font-size:15px;margin-bottom:8px;">Lambda lks-websocket</div>
+              <div style="font-size:12px;color:var(--text2);line-height:1.8;">
+                Semua route memanggil satu Lambda function yang berisi <code
+                  style="font-family:monospace;color:var(--accent2);">websocket.js</code>. Lambda memproses action
+                dan:<br>
+                • <strong>$connect</strong> — Simpan connectionId ke DynamoDB<br>
+                • <strong>$disconnect</strong> — Hapus connectionId dari DynamoDB<br>
+                • <strong>sendMessage</strong> — Kirim ke connection tertentu<br>
+                • <strong>getConnectionId</strong> — Return connectionId ke client<br>
+                • <strong>broadcastMessage</strong> — Kirim ke semua connections<br>
+                • <strong>$default</strong> — Handler fallback
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- STEP 2: Validate Token -->
-        <div class="step-card">
-          <div class="step-num">2</div>
-          <div class="step-title">Validasi via lks-auth</div>
-          <div class="step-desc">
-            Setiap request ke endpoint yang diamankan harus menyertakan header <code style="font-family:monospace;font-size:12px;color:var(--accent2);">Authorization</code> dan <code style="font-family:monospace;font-size:12px;color:var(--accent2);">Deviceid</code>. Lambda <code style="font-family:monospace;font-size:12px;color:var(--accent2);">lks-auth</code> query ke DynamoDB.
-          </div>
-          <div class="form-group" style="margin-bottom:12px;">
-            <label class="form-label">Token</label>
-            <input class="form-input" id="val-token" placeholder="Paste token..." />
-          </div>
-          <div class="form-group" style="margin-bottom:16px;">
-            <label class="form-label">Device ID</label>
-            <input class="form-input" id="val-device" placeholder="device-001" />
-          </div>
-          <button class="btn" onclick="validateToken()" style="width:100%;">
-            Validasi via lks-auth
-          </button>
-          <div id="val-result" style="margin-top:14px;font-size:13px;"></div>
-        </div>
-
-        <!-- DynamoDB Info -->
-        <div class="step-card">
-          <div class="step-num" style="background:var(--teal);color:#000;">D</div>
-          <div class="step-title">DynamoDB — tokens</div>
-          <div class="step-desc">Tabel tokens dengan provisioned capacity + auto scaling.</div>
-          <div style="background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);">
-            <div class="ssm-row" style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">
-              <span>Key</span><span>Type</span><span>Value</span>
+          <!-- RIGHT: Chat & Messages -->
+          <div>
+            <div class="sec-header">
+              <div class="sec-title">WebSocket Messages</div>
+              <button class="btn btn-sm" onclick="clearWsMessages()">Clear</button>
             </div>
-            <div class="ssm-row"><span class="ssm-key">token</span><span class="badge badge-accent">Partition Key (S)</span><span class="ssm-val">—</span></div>
-            <div class="ssm-row"><span class="ssm-key">deviceid</span><span class="badge badge-teal">Sort Key (S)</span><span class="ssm-val">—</span></div>
-            <div class="ssm-row"><span class="ssm-key">userId</span><span class="badge badge-gray">String</span><span class="ssm-val">—</span></div>
-            <div class="ssm-row"><span class="ssm-key">createdAt</span><span class="badge badge-gray">String</span><span class="ssm-val">—</span></div>
-          </div>
-          <div id="dynamo-table" style="margin-top:12px;"></div>
-        </div>
-
-        <!-- SSM Parameter Store -->
-        <div class="step-card">
-          <div class="step-num" style="background:var(--gold);color:#000;">S</div>
-          <div class="step-title">SSM Parameter Store</div>
-          <div class="step-desc">Lambda CRUD ke RDS mengambil config via <code style="font-family:monospace;font-size:12px;color:var(--accent2);">/lks/database/{{KEY}}</code></div>
-          <div style="background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);">
-            <div class="ssm-row"><span class="ssm-key">/lks/database/dbname</span><span class="badge badge-accent">String</span><span class="ssm-val">lks_concert</span></div>
-            <div class="ssm-row"><span class="ssm-key">/lks/database/username</span><span class="badge badge-accent">String</span><span class="ssm-val">lks_admin</span></div>
-            <div class="ssm-row"><span class="ssm-key">/lks/database/password</span><span class="badge badge-red">SecureString</span><span class="ssm-val">••••••••</span></div>
-            <div class="ssm-row"><span class="ssm-key">/lks/database/endpoint</span><span class="badge badge-accent">String</span><span class="ssm-val" style="font-size:10px;">lks-rds.cluster.us-west-2.rds.amazonaws.com</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== SQS PAGE ===== -->
-    <div class="page" id="page-sqs-page">
-      <div class="page-hero">
-        <h1>SQS Queue</h1>
-        <p>Decoupled Architecture — Antrian Pesan</p>
-        <div class="route-tag">lks-queue-order &nbsp;|&nbsp; lks-queue-payment &nbsp;|&nbsp; DLQ</div>
-      </div>
-
-      <!-- ORDER QUEUE -->
-      <div class="card" style="margin-bottom:24px;">
-        <div class="sec-header">
-          <div>
-            <div class="sec-title">lks-queue-order</div>
-            <div class="sec-sub">FIFO · Max 256KB · Visibility 30s · Retention 4 days · High Throughput</div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <span class="badge badge-accent" id="sqs-order-cnt">0 pesan</span>
-            <button class="btn btn-sm btn-primary" onclick="processNextOrder()">Proses Satu Pesan</button>
-            <button class="btn btn-sm" onclick="processAllOrders()">Proses Semua</button>
-          </div>
-        </div>
-
-        <!-- PIPELINE VIZ -->
-        <div class="queue-pipeline">
-          <div class="queue-stage" id="qs-api">
-            <div class="queue-stage-title">API Gateway</div>
-            <div class="queue-stage-main">POST /order</div>
-          </div>
-          <div class="queue-arrow"></div>
-          <div class="queue-stage" id="qs-lambda-q">
-            <div class="queue-stage-title">Lambda</div>
-            <div class="queue-stage-main">lks-queue-order</div>
-          </div>
-          <div class="queue-arrow"></div>
-          <div class="queue-stage" id="qs-sqs">
-            <div class="queue-stage-title">SQS FIFO</div>
-            <div class="queue-stage-main" id="qs-count">0 msg</div>
-          </div>
-          <div class="queue-arrow"></div>
-          <div class="queue-stage" id="qs-write">
-            <div class="queue-stage-title">Lambda</div>
-            <div class="queue-stage-main">lks-write-order</div>
-          </div>
-          <div class="queue-arrow"></div>
-          <div class="queue-stage" id="qs-rds">
-            <div class="queue-stage-title">RDS PostgreSQL</div>
-            <div class="queue-stage-main">INSERT orders</div>
-          </div>
-        </div>
-
-        <div id="order-queue-msgs">
-          <div style="font-size:13px;color:var(--text3);text-align:center;padding:20px;">Queue kosong — buat order di halaman Events</div>
-        </div>
-      </div>
-
-      <!-- PAYMENT QUEUE -->
-      <div class="card" style="margin-bottom:24px;">
-        <div class="sec-header">
-          <div>
-            <div class="sec-title">lks-queue-payment</div>
-            <div class="sec-sub">FIFO · Max 256KB · Visibility 30s · Retention 2 days · High Throughput</div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <span class="badge badge-gold" id="sqs-pay-cnt">0 pesan</span>
-            <button class="btn btn-sm" onclick="simulateS3Upload()">Simulasi S3 Upload</button>
-          </div>
-        </div>
-        <div class="queue-pipeline">
-          <div class="queue-stage"><div class="queue-stage-title">S3 Bucket</div><div class="queue-stage-main">proofOfPayment/</div></div>
-          <div class="queue-arrow"></div>
-          <div class="queue-stage"><div class="queue-stage-title">S3 Notification</div><div class="queue-stage-main">PutObject Event</div></div>
-          <div class="queue-arrow"></div>
-          <div class="queue-stage"><div class="queue-stage-title">SQS FIFO</div><div class="queue-stage-main" id="qs-pay-count">0 msg</div></div>
-          <div class="queue-arrow"></div>
-          <div class="queue-stage"><div class="queue-stage-title">Lambda</div><div class="queue-stage-main">lks-payment</div></div>
-        </div>
-        <div id="payment-queue-msgs">
-          <div style="font-size:13px;color:var(--text3);text-align:center;padding:20px;">Queue kosong</div>
-        </div>
-      </div>
-
-      <!-- DLQ -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <div class="card card-sm">
-          <div class="sec-title" style="font-size:15px;margin-bottom:4px;">lks-queue-order-dlq</div>
-          <div class="sec-sub" style="margin-bottom:12px;">Dead Letter Queue — order gagal diproses</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div class="stat-val red" id="dlq-order-cnt">0</div>
-            <button class="btn btn-sm btn-danger" onclick="simulateDLQ('order')">Simulasi Gagal</button>
-          </div>
-          <div id="dlq-order-msgs" style="margin-top:12px;"></div>
-        </div>
-        <div class="card card-sm">
-          <div class="sec-title" style="font-size:15px;margin-bottom:4px;">lks-queue-payment-dlq</div>
-          <div class="sec-sub" style="margin-bottom:12px;">Dead Letter Queue — payment gagal diproses</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div class="stat-val red" id="dlq-pay-cnt">0</div>
-            <button class="btn btn-sm btn-danger" onclick="simulateDLQ('payment')">Simulasi Gagal</button>
-          </div>
-          <div id="dlq-pay-msgs" style="margin-top:12px;"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== WEBSOCKET PAGE ===== -->
-    <div class="page" id="page-websocket-page">
-      <div class="page-hero">
-        <h1>WebSocket API</h1>
-        <p>Real-time async notifications dari SQS consumer</p>
-        <div class="route-tag">API WebSocket — prod stage — $request.body.action</div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-        <!-- LEFT: Connection & Routes -->
-        <div>
-          <div class="card" style="margin-bottom:16px;">
-            <div class="sec-title" style="font-size:15px;margin-bottom:12px;">Connection Control</div>
-            <div style="display:flex;gap:10px;margin-bottom:16px;">
-              <button class="btn btn-primary" id="ws-connect-btn" onclick="wsConnect()">
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 8h5M8 5.5l2.5 2.5-2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Connect
+            <div class="ws-messages" id="ws-messages">
+              <div class="ws-msg system">
+                <div>
+                  <div class="ws-msg-bubble">WebSocket simulator siap. Klik Connect untuk memulai.</div>
+                </div>
+              </div>
+            </div>
+            <div class="ws-input-row" style="margin-top:10px;">
+              <input class="form-input" id="ws-msg-input" placeholder="Ketik pesan..." style="flex:1;"
+                onkeydown="if(event.key==='Enter')wsSendText()" />
+              <button class="btn btn-primary" onclick="wsSendText()">Kirim</button>
+            </div>
+            <div style="margin-top:12px;">
+              <div class="sec-title" style="font-size:14px;margin-bottom:10px;">Simulasi SQS → WebSocket Broadcast</div>
+              <button class="btn btn-gold" onclick="simulateOrderComplete()"
+                style="width:100%;justify-content:center;margin-bottom:8px;">
+                Simulasi: Order Selesai Diproses
               </button>
-              <button class="btn btn-danger" onclick="wsDisconnect()">Disconnect</button>
-            </div>
-            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-size:12px;">
-              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                <span style="color:var(--text3);">Status</span>
-                <span id="ws-status-text">Disconnected</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                <span style="color:var(--text3);">Connection ID</span>
-                <span id="ws-conn-id" style="font-family:monospace;color:var(--teal);">—</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;">
-                <span style="color:var(--text3);">Total Connections</span>
-                <span id="ws-total-conn">0</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" style="margin-bottom:16px;">
-            <div class="sec-title" style="font-size:15px;margin-bottom:12px;">Routes</div>
-            <div class="ws-routes">
-              <button class="route-btn" onclick="wsSend('$connect')">$connect</button>
-              <button class="route-btn" onclick="wsSend('$disconnect')">$disconnect</button>
-              <button class="route-btn" onclick="wsSend('$default')">$default</button>
-              <button class="route-btn" onclick="wsSend('sendMessage')">sendMessage</button>
-              <button class="route-btn" onclick="wsSend('getConnectionId')">getConnectionId</button>
-              <button class="route-btn" onclick="broadcastMessage()">broadcastMessage</button>
-            </div>
-            <div class="form-group" style="margin-bottom:10px;">
-              <label class="form-label">Custom Message Body</label>
-              <input class="form-input" id="ws-custom-msg" placeholder='{"action":"sendMessage","data":"Hello!"}' />
-            </div>
-            <button class="btn btn-sm" onclick="wsSendCustom()">Kirim Custom</button>
-          </div>
-
-          <div class="card">
-            <div class="sec-title" style="font-size:15px;margin-bottom:8px;">Lambda lks-websocket</div>
-            <div style="font-size:12px;color:var(--text2);line-height:1.8;">
-              Semua route memanggil satu Lambda function yang berisi <code style="font-family:monospace;color:var(--accent2);">websocket.js</code>. Lambda memproses action dan:<br>
-              • <strong>$connect</strong> — Simpan connectionId ke DynamoDB<br>
-              • <strong>$disconnect</strong> — Hapus connectionId dari DynamoDB<br>
-              • <strong>sendMessage</strong> — Kirim ke connection tertentu<br>
-              • <strong>getConnectionId</strong> — Return connectionId ke client<br>
-              • <strong>broadcastMessage</strong> — Kirim ke semua connections<br>
-              • <strong>$default</strong> — Handler fallback
+              <button class="btn" onclick="simulatePaymentComplete()" style="width:100%;justify-content:center;">
+                Simulasi: Pembayaran Dikonfirmasi
+              </button>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- RIGHT: Chat & Messages -->
-        <div>
-          <div class="sec-header">
-            <div class="sec-title">WebSocket Messages</div>
-            <button class="btn btn-sm" onclick="clearWsMessages()">Clear</button>
+      <!-- ===== LAMBDA LOGS ===== -->
+      <div class="page" id="page-lambda-page">
+        <div class="page-hero">
+          <h1>Lambda Logs</h1>
+          <p>CloudWatch Logs — semua Lambda function invocations</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+          <button class="btn btn-sm" onclick="filterLog('all', this)">All</button>
+          <button class="btn btn-sm" onclick="filterLog('lks-read-event', this)">lks-read-event</button>
+          <button class="btn btn-sm" onclick="filterLog('lks-write-event', this)">lks-write-event</button>
+          <button class="btn btn-sm" onclick="filterLog('lks-queue-order', this)">lks-queue-order</button>
+          <button class="btn btn-sm" onclick="filterLog('lks-write-order', this)">lks-write-order</button>
+          <button class="btn btn-sm" onclick="filterLog('lks-auth', this)">lks-auth</button>
+          <button class="btn btn-sm" onclick="filterLog('lks-token', this)">lks-token</button>
+          <button class="btn btn-sm" onclick="filterLog('lks-ticket', this)">lks-ticket</button>
+          <button class="btn btn-sm" onclick="filterLog('lks-payment', this)">lks-payment</button>
+          <button class="btn btn-sm" onclick="filterLog('lks-websocket', this)">lks-websocket</button>
+          <button class="btn btn-sm btn-danger" style="margin-left:auto;" onclick="clearAllLogs()">Clear</button>
+        </div>
+        <div class="terminal" id="lambda-terminal"></div>
+
+        <div class="sec-header" style="margin-top:28px;">
+          <div class="sec-title">Lambda Functions Registry</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Function Name</th>
+                <th>Handler</th>
+                <th>Runtime</th>
+                <th>Trigger</th>
+                <th>Invocations</th>
+              </tr>
+            </thead>
+            <tbody id="lambda-registry"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== ARCHITECTURE ===== -->
+      <div class="page" id="page-arch-page">
+        <div class="page-hero">
+          <h1>Architecture</h1>
+          <p>System design — Serverless on AWS us-west-2</p>
+        </div>
+
+        <div class="sec-header">
+          <div class="sec-title">Request Flows</div>
+        </div>
+
+        <!-- Auth Flow -->
+        <div style="margin-bottom:12px;">
+          <div
+            style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">
+            Auth Flow</div>
+          <div class="arch-flow">
+            <div class="arch-node frontend">Vue.js Frontend (Amplify)</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node gateway">POST /token</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node lambda">AWS IAM Auth</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node lambda">lks-token (Lambda)</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node dynamo">DynamoDB tokens</div>
           </div>
-          <div class="ws-messages" id="ws-messages">
-            <div class="ws-msg system">
-              <div>
-                <div class="ws-msg-bubble">WebSocket simulator siap. Klik Connect untuk memulai.</div>
-              </div>
-            </div>
-          </div>
-          <div class="ws-input-row" style="margin-top:10px;">
-            <input class="form-input" id="ws-msg-input" placeholder="Ketik pesan..." style="flex:1;" onkeydown="if(event.key==='Enter')wsSendText()" />
-            <button class="btn btn-primary" onclick="wsSendText()">Kirim</button>
-          </div>
-          <div style="margin-top:12px;">
-            <div class="sec-title" style="font-size:14px;margin-bottom:10px;">Simulasi SQS → WebSocket Broadcast</div>
-            <button class="btn btn-gold" onclick="simulateOrderComplete()" style="width:100%;justify-content:center;margin-bottom:8px;">
-              Simulasi: Order Selesai Diproses
-            </button>
-            <button class="btn" onclick="simulatePaymentComplete()" style="width:100%;justify-content:center;">
-              Simulasi: Pembayaran Dikonfirmasi
-            </button>
+        </div>
+
+        <!-- Event Read -->
+        <div style="margin-bottom:12px;">
+          <div
+            style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">
+            Read Events</div>
+          <div class="arch-flow">
+            <div class="arch-node frontend">Frontend</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node gateway">GET /event</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node lambda">lks-auth (Authorizer)</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node lambda">lks-read-event</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node db">RDS PostgreSQL</div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- ===== LAMBDA LOGS ===== -->
-    <div class="page" id="page-lambda-page">
-      <div class="page-hero">
-        <h1>Lambda Logs</h1>
-        <p>CloudWatch Logs — semua Lambda function invocations</p>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
-        <button class="btn btn-sm" onclick="filterLog('all', this)">All</button>
-        <button class="btn btn-sm" onclick="filterLog('lks-read-event', this)">lks-read-event</button>
-        <button class="btn btn-sm" onclick="filterLog('lks-write-event', this)">lks-write-event</button>
-        <button class="btn btn-sm" onclick="filterLog('lks-queue-order', this)">lks-queue-order</button>
-        <button class="btn btn-sm" onclick="filterLog('lks-write-order', this)">lks-write-order</button>
-        <button class="btn btn-sm" onclick="filterLog('lks-auth', this)">lks-auth</button>
-        <button class="btn btn-sm" onclick="filterLog('lks-token', this)">lks-token</button>
-        <button class="btn btn-sm" onclick="filterLog('lks-ticket', this)">lks-ticket</button>
-        <button class="btn btn-sm" onclick="filterLog('lks-payment', this)">lks-payment</button>
-        <button class="btn btn-sm" onclick="filterLog('lks-websocket', this)">lks-websocket</button>
-        <button class="btn btn-sm btn-danger" style="margin-left:auto;" onclick="clearAllLogs()">Clear</button>
-      </div>
-      <div class="terminal" id="lambda-terminal"></div>
+        <!-- Order Flow -->
+        <div style="margin-bottom:12px;">
+          <div
+            style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">
+            Order (Decoupled Architecture)</div>
+          <div class="arch-flow" style="flex-wrap:wrap;gap:4px;">
+            <div class="arch-node frontend">Frontend</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node gateway">POST /order</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node lambda">lks-auth</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node lambda">lks-queue-order</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node sqs">SQS lks-queue-order</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node lambda">lks-write-order</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node db">RDS</div>
+            <div class="arch-arrow-h">+</div>
+            <div class="arch-node gateway">WebSocket Broadcast</div>
+          </div>
+        </div>
 
-      <div class="sec-header" style="margin-top:28px;">
-        <div class="sec-title">Lambda Functions Registry</div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Function Name</th><th>Handler</th><th>Runtime</th><th>Trigger</th><th>Invocations</th></tr></thead>
-          <tbody id="lambda-registry"></tbody>
-        </table>
-      </div>
-    </div>
+        <!-- Payment Flow -->
+        <div style="margin-bottom:12px;">
+          <div
+            style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">
+            Payment Flow</div>
+          <div class="arch-flow" style="flex-wrap:wrap;gap:4px;">
+            <div class="arch-node frontend">Frontend</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node gateway">PUT /payment/{filename}</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node s3">S3 proofOfPayment/</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node sqs">SQS lks-queue-payment</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node lambda">lks-payment</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node gateway">WebSocket Notify</div>
+          </div>
+        </div>
 
-    <!-- ===== ARCHITECTURE ===== -->
-    <div class="page" id="page-arch-page">
-      <div class="page-hero">
-        <h1>Architecture</h1>
-        <p>System design — Serverless on AWS us-west-2</p>
-      </div>
+        <!-- WebSocket -->
+        <div style="margin-bottom:24px;">
+          <div
+            style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">
+            WebSocket API</div>
+          <div class="arch-flow" style="flex-wrap:wrap;gap:4px;">
+            <div class="arch-node frontend">Frontend</div>
+            <div class="arch-arrow-h">↔</div>
+            <div class="arch-node gateway">API WebSocket (prod)</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node lambda">lks-websocket (6 routes)</div>
+            <div class="arch-arrow-h">→</div>
+            <div class="arch-node dynamo">DynamoDB connections</div>
+          </div>
+        </div>
 
-      <div class="sec-header"><div class="sec-title">Request Flows</div></div>
-
-      <!-- Auth Flow -->
-      <div style="margin-bottom:12px;">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Auth Flow</div>
-        <div class="arch-flow">
-          <div class="arch-node frontend">Vue.js Frontend (Amplify)</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node gateway">POST /token</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node lambda">AWS IAM Auth</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node lambda">lks-token (Lambda)</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node dynamo">DynamoDB tokens</div>
+        <!-- Services Table -->
+        <div class="sec-header">
+          <div class="sec-title">AWS Services Summary</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th>Resource Name</th>
+                <th>Config</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="badge badge-teal">VPC</span></td>
+                <td style="font-family:monospace;font-size:12px;">lks-vpc</td>
+                <td style="font-size:12px;">15.32.0.0/16 · 2 pub + 4 priv · 2 AZ</td>
+                <td style="font-size:12px;color:var(--text2);">Network isolation</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-accent">Lambda</span></td>
+                <td style="font-family:monospace;font-size:12px;">lks-*</td>
+                <td style="font-size:12px;">NodeJS 16 · LabRole IAM</td>
+                <td style="font-size:12px;color:var(--text2);">Backend logic (8 functions)</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-accent">API Gateway REST</span></td>
+                <td style="font-family:monospace;font-size:12px;">lks-apiGateway</td>
+                <td style="font-size:12px;">stage: production · caching ON · CORS *</td>
+                <td style="font-size:12px;color:var(--text2);">REST endpoints</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-teal">API Gateway WS</span></td>
+                <td style="font-family:monospace;font-size:12px;">lks-websocket-api</td>
+                <td style="font-size:12px;">stage: prod · 6 routes</td>
+                <td style="font-size:12px;color:var(--text2);">Real-time notifications</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-gold">RDS PostgreSQL</span></td>
+                <td style="font-family:monospace;font-size:12px;">lks-rds</td>
+                <td style="font-size:12px;">Multi-AZ · Private subnet · No public</td>
+                <td style="font-size:12px;color:var(--text2);">Primary database</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-green">DynamoDB</span></td>
+                <td style="font-family:monospace;font-size:12px;">tokens</td>
+                <td style="font-size:12px;">Provisioned · RCU 10-100 · WCU 5-25 · 70% target</td>
+                <td style="font-size:12px;color:var(--text2);">Token storage</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-red">S3</span></td>
+                <td style="font-family:monospace;font-size:12px;">lks-YourName-YourProvince</td>
+                <td style="font-size:12px;">proofOfPayment/ · Glacier 6mo · Delete 1yr</td>
+                <td style="font-size:12px;color:var(--text2);">Payment evidence</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-gold">SQS</span></td>
+                <td style="font-family:monospace;font-size:12px;">lks-queue-order / lks-queue-payment</td>
+                <td style="font-size:12px;">FIFO · High Throughput · DLQ</td>
+                <td style="font-size:12px;color:var(--text2);">Decoupled messaging</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-accent">SSM Parameter</span></td>
+                <td style="font-family:monospace;font-size:12px;">/lks/database/*</td>
+                <td style="font-size:12px;">dbname · username · password (Secure) · endpoint</td>
+                <td style="font-size:12px;color:var(--text2);">DB config secrets</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-gray">Amplify</span></td>
+                <td style="font-family:monospace;font-size:12px;">lks-frontend</td>
+                <td style="font-size:12px;">Vue.js 3</td>
+                <td style="font-size:12px;color:var(--text2);">Frontend hosting</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Event Read -->
-      <div style="margin-bottom:12px;">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Read Events</div>
-        <div class="arch-flow">
-          <div class="arch-node frontend">Frontend</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node gateway">GET /event</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node lambda">lks-auth (Authorizer)</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node lambda">lks-read-event</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node db">RDS PostgreSQL</div>
-        </div>
-      </div>
+    </main>
+  </div>
 
-      <!-- Order Flow -->
-      <div style="margin-bottom:12px;">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Order (Decoupled Architecture)</div>
-        <div class="arch-flow" style="flex-wrap:wrap;gap:4px;">
-          <div class="arch-node frontend">Frontend</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node gateway">POST /order</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node lambda">lks-auth</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node lambda">lks-queue-order</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node sqs">SQS lks-queue-order</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node lambda">lks-write-order</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node db">RDS</div>
-          <div class="arch-arrow-h">+</div>
-          <div class="arch-node gateway">WebSocket Broadcast</div>
-        </div>
-      </div>
-
-      <!-- Payment Flow -->
-      <div style="margin-bottom:12px;">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Payment Flow</div>
-        <div class="arch-flow" style="flex-wrap:wrap;gap:4px;">
-          <div class="arch-node frontend">Frontend</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node gateway">PUT /payment/{filename}</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node s3">S3 proofOfPayment/</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node sqs">SQS lks-queue-payment</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node lambda">lks-payment</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node gateway">WebSocket Notify</div>
-        </div>
-      </div>
-
-      <!-- WebSocket -->
-      <div style="margin-bottom:24px;">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">WebSocket API</div>
-        <div class="arch-flow" style="flex-wrap:wrap;gap:4px;">
-          <div class="arch-node frontend">Frontend</div>
-          <div class="arch-arrow-h">↔</div>
-          <div class="arch-node gateway">API WebSocket (prod)</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node lambda">lks-websocket (6 routes)</div>
-          <div class="arch-arrow-h">→</div>
-          <div class="arch-node dynamo">DynamoDB connections</div>
-        </div>
-      </div>
-
-      <!-- Services Table -->
-      <div class="sec-header"><div class="sec-title">AWS Services Summary</div></div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Service</th><th>Resource Name</th><th>Config</th><th>Purpose</th></tr></thead>
-          <tbody>
-            <tr><td><span class="badge badge-teal">VPC</span></td><td style="font-family:monospace;font-size:12px;">lks-vpc</td><td style="font-size:12px;">15.32.0.0/16 · 2 pub + 4 priv · 2 AZ</td><td style="font-size:12px;color:var(--text2);">Network isolation</td></tr>
-            <tr><td><span class="badge badge-accent">Lambda</span></td><td style="font-family:monospace;font-size:12px;">lks-*</td><td style="font-size:12px;">NodeJS 16 · LabRole IAM</td><td style="font-size:12px;color:var(--text2);">Backend logic (8 functions)</td></tr>
-            <tr><td><span class="badge badge-accent">API Gateway REST</span></td><td style="font-family:monospace;font-size:12px;">lks-apiGateway</td><td style="font-size:12px;">stage: production · caching ON · CORS *</td><td style="font-size:12px;color:var(--text2);">REST endpoints</td></tr>
-            <tr><td><span class="badge badge-teal">API Gateway WS</span></td><td style="font-family:monospace;font-size:12px;">lks-websocket-api</td><td style="font-size:12px;">stage: prod · 6 routes</td><td style="font-size:12px;color:var(--text2);">Real-time notifications</td></tr>
-            <tr><td><span class="badge badge-gold">RDS PostgreSQL</span></td><td style="font-family:monospace;font-size:12px;">lks-rds</td><td style="font-size:12px;">Multi-AZ · Private subnet · No public</td><td style="font-size:12px;color:var(--text2);">Primary database</td></tr>
-            <tr><td><span class="badge badge-green">DynamoDB</span></td><td style="font-family:monospace;font-size:12px;">tokens</td><td style="font-size:12px;">Provisioned · RCU 10-100 · WCU 5-25 · 70% target</td><td style="font-size:12px;color:var(--text2);">Token storage</td></tr>
-            <tr><td><span class="badge badge-red">S3</span></td><td style="font-family:monospace;font-size:12px;">lks-YourName-YourProvince</td><td style="font-size:12px;">proofOfPayment/ · Glacier 6mo · Delete 1yr</td><td style="font-size:12px;color:var(--text2);">Payment evidence</td></tr>
-            <tr><td><span class="badge badge-gold">SQS</span></td><td style="font-family:monospace;font-size:12px;">lks-queue-order / lks-queue-payment</td><td style="font-size:12px;">FIFO · High Throughput · DLQ</td><td style="font-size:12px;color:var(--text2);">Decoupled messaging</td></tr>
-            <tr><td><span class="badge badge-accent">SSM Parameter</span></td><td style="font-family:monospace;font-size:12px;">/lks/database/*</td><td style="font-size:12px;">dbname · username · password (Secure) · endpoint</td><td style="font-size:12px;color:var(--text2);">DB config secrets</td></tr>
-            <tr><td><span class="badge badge-gray">Amplify</span></td><td style="font-family:monospace;font-size:12px;">lks-frontend</td><td style="font-size:12px;">Vue.js 3</td><td style="font-size:12px;color:var(--text2);">Frontend hosting</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </main>
-</div>
-
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
+
 </html>

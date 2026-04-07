@@ -20,6 +20,26 @@ exports.handler = async (event, context) => {
             await dbClient.connect();
         }
 
+        const method = event.httpMethod || (event.requestContext && event.requestContext.http ? event.requestContext.http.method : "POST");
+
+        if (method === "DELETE") {
+            const id = event.pathParameters ? event.pathParameters.id : (event.queryStringParameters ? event.queryStringParameters.id : null);
+            if (!id) {
+                return {
+                    statusCode: 400,
+                    headers: { "Access-Control-Allow-Origin": "*" },
+                    body: JSON.stringify({ error: "Missing required parameter: id" })
+                };
+            }
+            await dbClient.query('DELETE FROM events WHERE id = $1', [id]);
+            return {
+                statusCode: 200,
+                headers: { "Access-Control-Allow-Origin": "*" },
+                body: JSON.stringify({ message: "Event berhasil dihapus", eventId: id })
+            };
+        }
+
+        // Logic POST (Default)
         const body = JSON.parse(event.body || "{}");
         const { id, name, date, venue, price, quota } = body;
 
