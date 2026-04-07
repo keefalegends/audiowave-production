@@ -2,62 +2,48 @@
 
 ![Serverless Architecture](https://img.shields.io/badge/Architecture-Serverless-FF9900?style=for-the-badge&logo=amazonaws)
 ![NodeJS](https://img.shields.io/badge/Node.js-16.x-339933?style=for-the-badge&logo=nodedotjs)
+![WebSocket](https://img.shields.io/badge/API-WebSocket-000000?style=for-the-badge&logo=socketdotio)
 ![AWS Lambda](https://img.shields.io/badge/AWS-Lambda-FF9900?style=for-the-badge&logo=aws-lambda)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-4169E1?style=for-the-badge&logo=postgresql)
 
-Sound Wave Production adalah platform pemesanan tiket konser berbasis **Serverless Architecture** di AWS. Sistem ini dirancang untuk menangani trafik tinggi (*war ticket*) menggunakan pola asinkronus dengan SQS FIFO dan database relasional RDS PostgreSQL.
+Sound Wave Production adalah platform pemesanan tiket konser berbasis **Full Serverless Architecture** di AWS. Sistem ini dirancang untuk menangani trafik tinggi menggunakan pola asinkronus dengan SQS FIFO dan **Real-Time Notifications** melalui WebSocket API.
 
 ---
 
-## 🏛️ Arsitektur Sistem
+## 🏛️ Arsitektur Sistem (Real-Time Flow)
 
 ```mermaid
 graph TD
-    A[Vue.js Frontend] -->|REST API| B[API Gateway]
-    B -->|Auth| C[Lambda Auth]
-    C -->|Query| D[(DynamoDB Tokens)]
-    B -->|POST /order| E[Lambda QueueOrder]
-    E -->|Push| F[SQS FIFO Queue]
-    F -->|Trigger| G[Lambda WriteOrder]
-    G -->|Insert| H[(RDS PostgreSQL)]
-    B -->|GET /events| I[Lambda ReadEvent]
-    I -->|Query| H
+    A[Browser / Client] -->|REST API| B[API Gateway REST]
+    A -->|WSS| C[API Gateway WebSocket]
+    
+    B -->|Auth| D[Lambda Auth]
+    D -->|Query| E[(DynamoDB Tokens)]
+    
+    B -->|POST /order| F[Lambda QueueOrder]
+    F -->|Push| G[SQS FIFO Queue]
+    G -->|Trigger| H[Lambda WriteOrder]
+    H -->|Insert| I[(RDS PostgreSQL)]
+    
+    H -->|Notify| C
+    C -->|Push Message| A
+    
+    C -->|Manage| J[Lambda WebSocket]
+    J -->|Store ConnID| K[(DynamoDB Connections)]
 ```
 
 ### Komponen Utama:
-- **Frontend**: Single Page Application (SPA) dengan UI premium, dark mode, dan animasi terintegrasi.
-- **API Gateway**: Entry point utama dengan **Custom Lambda Authorizer**.
-- **AWS Lambda**: Logika bisnis (Read/Write Event, Queueing, Auth, Token).
-- **Amazon SQS FIFO**: Menjamin urutan pemesanan tiket (*First-Come, First-Served*) dan mencegah duplikasi data.
-- **RDS PostgreSQL**: Database utama untuk menyimpan data Event, Order, dan Tiket.
-- **DynamoDB**: Penyimpanan token sesi yang cepat dan efisien.
+- **API Gateway WebSocket**: Menangani koneksi "Always-On" untuk notifikasi instan.
+- **Amazon SQS FIFO**: Mengantri pesanan secara berurutan (*First-Come, First-Served*).
+- **Real-Time Feedback**: SQS Worker mentrigger notifikasi WebSocket ke browser user begitu database sukses terupdate.
+- **RDS PostgreSQL**: Database relasional dengan skema teroptimasi (`CASCADE Delete`).
 
 ---
 
-## 📂 Struktur Folder
-
-```text
-├── frontend/             # Root aplikasi UI
-│   ├── index.html        # Kerangka web
-│   ├── style.css         # Modern Aesthetic CSS
-│   └── app.js            # API Integration & State Management
-│
-├── backend/              # Node.js Lambda Functions
-│   ├── auth.js           # Lambda Authorizer (Header validation)
-│   ├── token.js          # Login & Token Generator (DyanmoDB)
-│   ├── readEvent.js      # Fetch events dari RDS
-│   ├── writeEvent.js     # Admin: Create event ke RDS
-│   ├── queueOrder.js     # Producer: Kirim order ke SQS
-│   ├── writeOrder.js     # Consumer: SQS trigger -> DB Transaction
-│   └── ticket.js         # Fetch user tickets (Join Query)
-```
-
----
-
-## ⚙️ Setup & Konfigurasi
+## ⚙️ Setup Database & Infrastruktur
 
 ### 1. Database Schema (PostgreSQL)
-Jalankan perintah ini di database RDS Anda:
+Penting: Gunakan `ON DELETE CASCADE` agar saat Event dihapus, data Order & Tiket terkait otomatis bersih.
 
 ```sql
 CREATE TABLE events (
@@ -72,44 +58,50 @@ CREATE TABLE events (
 
 CREATE TABLE orders (
     id VARCHAR(50) PRIMARY KEY,
-    event_id VARCHAR(50) REFERENCES events(id),
+    event_id VARCHAR(50) REFERENCES events(id) ON DELETE CASCADE,
     name VARCHAR(100),
     email VARCHAR(100),
     phone VARCHAR(20),
     qty INTEGER,
     category VARCHAR(20),
     total NUMERIC(12,2),
-    status VARCHAR(20) DEFAULT 'PENDING',
+    status VARCHAR(20) DEFAULT 'SUCCESS',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE tickets (
     id VARCHAR(50) PRIMARY KEY,
-    order_id VARCHAR(50) REFERENCES orders(id),
+    order_id VARCHAR(50) REFERENCES orders(id) ON DELETE CASCADE,
     user_email VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-### 2. Environment Variables (Lambda)
-Pastikan setiap fungsi Lambda memiliki variabel lingkungan berikut:
-- `DB_HOST`: Endpoint RDS
-- `DB_NAME`: Nama database
-- `DB_USER`: Username database
-- `DB_PASS`: Password database
-- `SQS_QUEUE_URL`: URL Antrean SQS FIFO (khusus fungsi `queueOrder`)
+### 2. DynamoDB Tables
+- **Table `tokens`**: Partition Key `token` (String).
+- **Table `connections`**: Partition Key `connectionId` (String).
 
-### 3. Koneksi Frontend
-Buka [frontend/app.js](frontend/app.js) dan update konstanta di baris paling atas:
+### 3. Environment Variables (Lambda)
+| Fungsi | Variabel | Deskripsi |
+| --- | --- | --- |
+| **Global** | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` | Koneksi RDS |
+| **queueOrder** | `SQS_QUEUE_URL` | URL Antrean SQS FIFO |
+| **writeOrder** | `WS_ENDPOINT` | URL HTTPS API WebSocket (Tanpa /@connections) |
+
+---
+
+## 🚀 Deployment Frontend
+Ganti endpoint di [frontend/app.js](frontend/app.js) baris 3-4:
 ```javascript
-const API_BASE_URL = 'https://your-api-id.execute-api.us-west-2.amazonaws.com/prod';
+const API_BASE_URL = 'https://<api-id>.execute-api.us-west-2.amazonaws.com/prod';
+const WS_URL = 'wss://<api-id>.execute-api.us-west-2.amazonaws.com/prod';
 ```
 
 ---
 
-## 🛡️ Keamanan & Performa
-- **Lambda Authorizer**: Memvalidasi token di setiap request sensitif menggunakan DynamoDB.
-- **VPC Integration**: Lambda dan RDS berada dalam jaringan privat untuk keamanan maksimal.
-- **Deduplication**: SQS FIFO menggunakan `MessageDeduplicationId` untuk memastikan tidak ada order ganda.
+## 🛡️ Fitur Unggulan
+- **Real-Time Notification**: Muncul popup "Order Berhasil" tanpa refresh halaman.
+- **Deduplication Order**: Mencegah double-order meski user klik berkali-kali (Handled by SQS FIFO).
+- **Atomic Quota**: (Optional Roadmap) Pengurangan kuota menggunakan transaksi database.
 
-> *"May the cloud be with you."* — Sound Wave Engineers 🎸
+> *"Excellent UX begins with Real-Time Feedback."* — Sound Wave Team 🎸🏆
